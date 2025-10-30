@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hypervisor Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        color: white;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2.5em;
+      }
+
+      .panel {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .panel h2 {
+        color: #667eea;
+        margin-bottom: 15px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-right: 10px;
+      }
+
+      button:hover {
+        background: #5568d3;
+      }
+
+      .btn-danger {
+        background: #e74c3c;
+      }
+
+      .btn-danger:hover {
+        background: #c0392b;
+      }
+
+      .btn-success {
+        background: #2ecc71;
+      }
+
+      .btn-success:hover {
+        background: #27ae60;
+      }
+
+      #servicesList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+      }
+
+      .service-card {
+        background: #f8f9fa;
+        border-left: 5px solid #667eea;
+        padding: 15px;
+        border-radius: 5px;
+      }
+
+      .service-card.alive {
+        border-left-color: #2ecc71;
+      }
+
+      .service-card.dead {
+        border-left-color: #e74c3c;
+      }
+
+      .service-card h3 {
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        margin: 5px 5px 5px 0;
+      }
+
+      .status-alive {
+        background: #2ecc71;
+        color: white;
+      }
+
+      .status-dead {
+        background: #e74c3c;
+        color: white;
+      }
+
+      .status-running {
+        background: #3498db;
+        color: white;
+      }
+
+      .commands-list {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      .command-item {
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+        font-family: monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 Hypervisor Dashboard</h1>
+
+      <!-- Panel de création de service -->
+      <div class="panel">
+        <h2>Créer un nouveau service</h2>
+        <div class="form-group">
+          <label>Nom du service</label>
+          <input
+            type="text"
+            id="serviceName"
+            placeholder="Ex: Service-Worker-1"
+          />
+        </div>
+        <div class="form-group">
+          <label>Timeout Heartbeat (secondes)</label>
+          <input type="number" id="heartbeatTimeout" value="30" />
+        </div>
+        <div class="form-group">
+          <label>Mode Crash (pour test)</label>
+          <select id="crashMode">
+            <option value="false">Non</option>
+            <option value="true">Oui</option>
+          </select>
+        </div>
+        <button onclick="createService()">Créer Service</button>
+      </div>
+
+      <!-- Panel d'ajout de commandes -->
+      <div class="panel">
+        <h2>Ajouter des commandes</h2>
+        <div class="form-group">
+          <label>ID du service</label>
+          <input
+            type="text"
+            id="commandServiceId"
+            placeholder="Coller l'ID du service"
+          />
+        </div>
+        <div class="form-group">
+          <label>Commande</label>
+          <input
+            type="text"
+            id="commandText"
+            placeholder="Ex: process-data-batch-1"
+          />
+        </div>
+        <button onclick="addCommand()" class="btn-success">
+          Ajouter Commande
+        </button>
+        <button onclick="executeCommands()" class="btn-success">
+          Exécuter Toutes
+        </button>
+      </div>
+
+      <!-- Liste des services -->
+      <div class="panel">
+        <h2>Services en cours</h2>
+        <button onclick="refreshServices()">🔄 Rafraîchir</button>
+        <div id="servicesList"></div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:8080/api/services";
+
+      // Crée un service
+      async function createService() {
+        const name = document.getElementById("serviceName").value;
+        const timeout = parseInt(
+          document.getElementById("heartbeatTimeout").value
+        );
+        const crashMode = document.getElementById("crashMode").value === "true";
+
+        if (!name) {
+          alert("Veuillez entrer un nom de service");
+          return;
+        }
+
+        try {
+          const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: name,
+              heartbeatTimeout: timeout,
+              crashMode: crashMode,
+            }),
+          });
+
+          const data = await response.json();
+          alert(`Service créé avec succès!\nID: ${data.id}`);
+          document.getElementById("commandServiceId").value = data.id;
+          refreshServices();
+        } catch (error) {
+          alert("Erreur: " + error.message);
+        }
+      }
+
+      // Ajoute une commande
+      async function addCommand() {
+        const serviceId = document.getElementById("commandServiceId").value;
+        const command = document.getElementById("commandText").value;
+
+        if (!serviceId || !command) {
+          alert("Veuillez remplir tous les champs");
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/${serviceId}/commands`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ command: command }),
+          });
+
+          const data = await response.json();
+          alert(`Commande ajoutée! Total: ${data.totalCommands}`);
+          document.getElementById("commandText").value = "";
+          refreshServices();
+        } catch (error) {
+          alert("Erreur: " + error.message);
+        }
+      }
+
+      // Exécute les commandes
+      async function executeCommands() {
+        const serviceId = document.getElementById("commandServiceId").value;
+
+        if (!serviceId) {
+          alert("Veuillez entrer un ID de service");
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/${serviceId}/execute`, {
+            method: "POST",
+          });
+
+          const data = await response.json();
+          alert(data.message);
+        } catch (error) {
+          alert("Erreur: " + error.message);
+        }
+      }
+
+      // Rafraîchit la liste des services
+      async function refreshServices() {
+        try {
+          const response = await fetch(API_URL);
+          const services = await response.json();
+
+          const container = document.getElementById("servicesList");
+          container.innerHTML = "";
+
+          for (const [id, service] of Object.entries(services)) {
+            const card = document.createElement("div");
+            card.className = `service-card ${service.alive ? "alive" : "dead"}`;
+
+            card.innerHTML = `
+                        <h3>${service.name}</h3>
+                        <p><strong>ID:</strong> <small>${id}</small></p>
+                        <div>
+                            <span class="status-badge ${
+                              service.alive ? "status-alive" : "status-dead"
+                            }">
+                                ${service.alive ? "✅ ALIVE" : "💀 DEAD"}
+                            </span>
+                            <span class="status-badge status-running">${
+                              service.state
+                            }</span>
+                        </div>
+                        <p><strong>Heartbeat:</strong> ${new Date(
+                          service.lastHeartbeat
+                        ).toLocaleTimeString()}</p>
+                        <p><strong>Commandes en attente:</strong> ${
+                          service.pendingCommands
+                        }</p>
+                        <button onclick="deleteService('${id}')" class="btn-danger">Supprimer</button>
+                    `;
+
+            container.appendChild(card);
+          }
+
+          if (Object.keys(services).length === 0) {
+            container.innerHTML = "<p>Aucun service en cours</p>";
+          }
+        } catch (error) {
+          console.error("Erreur:", error);
+        }
+      }
+
+      // Supprime un service
+      async function deleteService(id) {
+        if (!confirm("Voulez-vous vraiment supprimer ce service ?")) {
+          return;
+        }
+
+        try {
+          await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+          refreshServices();
+        } catch (error) {
+          alert("Erreur: " + error.message);
+        }
+      }
+
+      // Auto-refresh toutes les 5 secondes
+      setInterval(refreshServices, 5000);
+
+      // Charge initial
+      refreshServices();
+    </script>
+  </body>
+</html>
