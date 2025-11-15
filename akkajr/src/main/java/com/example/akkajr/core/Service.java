@@ -12,7 +12,7 @@ public abstract class Service implements Heartbeat, DeathWatch {
     // ========== ATTRIBUTS EXISTANTS ==========
     protected final String id;
     protected String name;
-    protected ServiceState state;
+    protected volatile ServiceState state; // CORRECTION: volatile pour thread-safety
     protected List<String> inputsCommands;
     protected LocalDateTime creationTime;
     protected LocalDateTime lastModifiedTime;
@@ -33,6 +33,7 @@ public abstract class Service implements Heartbeat, DeathWatch {
     private List<Service> children;
     private SupervisionStrategy supervisionStrategy;
     private final Object childrenLock = new Object();
+    private final Object stateLock = new Object(); // CORRECTION: Lock pour changement d'état
     
     // ========== RÉSILIENCE : RETRY, CIRCUIT BREAKER, DEATHWATCH ==========
     private RetryPolicy retryPolicy;
@@ -176,6 +177,7 @@ public abstract class Service implements Heartbeat, DeathWatch {
                     }
                     
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     break;
                 }
             }
@@ -220,10 +222,14 @@ public abstract class Service implements Heartbeat, DeathWatch {
                 case ESCALATE:
                     logger.warning("⬆️ Escalade de l'erreur au parent");
                     if (this.parent != null) {
-                        this.state = ServiceState.ERROR;
+                        synchronized (stateLock) {
+                            this.state = ServiceState.ERROR;
+                        }
                         this.parent.handleChildFailure(this);
                     } else {
-                        this.state = ServiceState.ERROR;
+                        synchronized (stateLock) {
+                            this.state = ServiceState.ERROR;
+                        }
                         this.stop();
                     }
                     break;
@@ -240,32 +246,50 @@ public abstract class Service implements Heartbeat, DeathWatch {
     // ========== CYCLE DE VIE AVEC HEARTBEAT ET RÉSILIENCE ==========
     
     public final void start() throws Exception {
-        if (state == ServiceState.RUNNING) {
-            logger.warning("Le service est déjà en cours d'exécution");
-            return;
-        }
-        
-        // Vérifie le circuit breaker
-        if (circuitBreaker.isOpen()) {
-            logger.severe("❌ Circuit breaker OUVERT pour : " + name);
-            throw new IllegalStateException("Circuit breaker is OPEN for " + name);
-        }
-        
-        // Vérifie la retry policy
-        if (!retryPolicy.canRetry()) {
-            logger.severe("❌ Limite de retry atteinte pour : " + name);
-            logger.severe("   Statistiques : " + retryPolicy.getStats());
-            throw new IllegalStateException("Retry limit exceeded for " + name);
+        // CORRECTION: Vérification thread-safe de l'état
+        synchronized (stateLock) {
+            if (state == ServiceState.RUNNING) {
+                logger.warning("Le service est déjà en cours d'exécution");
+                return;
+            }
+            
+            if (state == ServiceState.STARTING) {
+                logger.warning("Le service est déjà en cours de démarrage");
+                return;
+            }
+            
+            state = ServiceState.STARTING;
         }
         
         logger.info("Démarrage du service : " + name);
+        logger.info("   État actuel : " + state);
         logger.info("   Retry : " + retryPolicy.getStats());
         logger.info("   Circuit Breaker : " + circuitBreaker.getState());
         
-        state = ServiceState.STARTING;
-        
         try {
+            // CORRECTION: Vérification du circuit breaker APRÈS le changement d'état
+            if (circuitBreaker.isOpen()) {
+                logger.severe("❌ Circuit breaker OUVERT pour : " + name);
+                synchronized (stateLock) {
+                    state = ServiceState.ERROR;
+                }
+                throw new IllegalStateException("Circuit breaker is OPEN for " + name);
+            }
+            
+            // CORRECTION: Vérification de la retry policy
+            if (!retryPolicy.canRetry()) {
+                logger.severe("❌ Limite de retry atteinte pour : " + name);
+                logger.severe("   Statistiques : " + retryPolicy.getStats());
+                synchronized (stateLock) {
+                    state = ServiceState.ERROR;
+                }
+                throw new IllegalStateException("Retry limit exceeded for " + name);
+            }
+            
             if (!validateConfiguration()) {
+                synchronized (stateLock) {
+                    state = ServiceState.ERROR;
+                }
                 throw new IllegalStateException("Configuration invalide");
             }
             
@@ -274,7 +298,9 @@ public abstract class Service implements Heartbeat, DeathWatch {
             
             startHeartbeatScheduler();
             
-            state = ServiceState.RUNNING;
+            synchronized (stateLock) {
+                state = ServiceState.RUNNING;
+            }
             lastModifiedTime = LocalDateTime.now();
             ping();
             
@@ -289,21 +315,41 @@ public abstract class Service implements Heartbeat, DeathWatch {
             logger.info("✅ Service démarré avec succès : " + name);
             
         } catch (Exception e) {
-            state = ServiceState.ERROR;
+            synchronized (stateLock) {
+                state = ServiceState.ERROR;
+            }
             circuitBreaker.recordFailure();
+            stopHeartbeatScheduler(); // CORRECTION: Arrêt du heartbeat en cas d'erreur
             logger.severe("❌ Erreur au démarrage : " + e.getMessage());
             throw e;
         }
     }
     
     public final void stop() throws Exception {
-        if (state != ServiceState.RUNNING && state != ServiceState.PAUSED) {
-            logger.warning("Le service n'est pas en cours d'exécution");
-            return;
+        // CORRECTION: Vérification thread-safe de l'état
+        synchronized (stateLock) {
+            if (state == ServiceState.STOPPED) {
+                logger.warning("Le service est déjà arrêté");
+                return;
+            }
+            
+            if (state == ServiceState.STOPPING) {
+                logger.warning("Le service est déjà en cours d'arrêt");
+                return;
+            }
+            
+            if (state != ServiceState.RUNNING && 
+                state != ServiceState.PAUSED && 
+                state != ServiceState.ERROR &&
+                state != ServiceState.ZOMBIE) {
+                logger.warning("Le service n'est pas dans un état permettant l'arrêt : " + state);
+                return;
+            }
+            
+            state = ServiceState.STOPPING;
         }
         
         logger.info("Arrêt du service : " + name);
-        state = ServiceState.STOPPING;
         
         try {
             stopAllChildren();
@@ -312,15 +358,19 @@ public abstract class Service implements Heartbeat, DeathWatch {
             beforeStop();
             onStop();
             
-            state = ServiceState.STOPPED;
+            synchronized (stateLock) {
+                state = ServiceState.STOPPED;
+            }
             lastModifiedTime = LocalDateTime.now();
             
             afterStop();
-            logger.info("Service arrêté : " + name);
+            logger.info("✅ Service arrêté : " + name);
             
         } catch (Exception e) {
-            state = ServiceState.ERROR;
-            logger.severe("Erreur à l'arrêt : " + e.getMessage());
+            synchronized (stateLock) {
+                state = ServiceState.ERROR;
+            }
+            logger.severe("❌ Erreur à l'arrêt : " + e.getMessage());
             throw e;
         }
     }
@@ -381,7 +431,9 @@ public abstract class Service implements Heartbeat, DeathWatch {
             
             if (!alive && state == ServiceState.RUNNING) {
                 logger.warning("⚠️ Service ZOMBIE détecté : " + name);
-                state = ServiceState.ZOMBIE;
+                synchronized (stateLock) {
+                    state = ServiceState.ZOMBIE;
+                }
             }
             
             return alive;
@@ -395,6 +447,7 @@ public abstract class Service implements Heartbeat, DeathWatch {
     
     private void startHeartbeatScheduler() {
         if (heartbeatScheduler != null && !heartbeatScheduler.isShutdown()) {
+            logger.warning("Heartbeat scheduler déjà démarré");
             return;
         }
         
@@ -421,10 +474,14 @@ public abstract class Service implements Heartbeat, DeathWatch {
         if (heartbeatScheduler != null && !heartbeatScheduler.isShutdown()) {
             heartbeatScheduler.shutdown();
             try {
-                heartbeatScheduler.awaitTermination(5, TimeUnit.SECONDS);
+                if (!heartbeatScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                    heartbeatScheduler.shutdownNow();
+                }
             } catch (InterruptedException e) {
                 heartbeatScheduler.shutdownNow();
+                Thread.currentThread().interrupt();
             }
+            logger.info("Heartbeat scheduler arrêté pour : " + name);
         }
     }
     
@@ -455,12 +512,8 @@ public abstract class Service implements Heartbeat, DeathWatch {
         return new HashSet<>(watchedServices);
     }
     
-    /**
-     * Gère la mort d'un service surveillé (peut être surchargé)
-     */
     protected void handleWatchedServiceDeath(Service deadService) {
         logger.warning("⚰️ Traitement de la mort de : " + deadService.getName());
-        // Implémentation par défaut : peut être surchargée dans les sous-classes
     }
     
     // ========== GESTION RETRY POLICY ==========
@@ -495,16 +548,10 @@ public abstract class Service implements Heartbeat, DeathWatch {
         logger.info("Circuit breaker réinitialisé pour : " + name);
     }
     
-    /**
-     * Exécute une opération avec circuit breaker
-     */
     protected <T> T executeWithCircuitBreaker(Supplier<T> operation) throws Exception {
         return circuitBreaker.execute(() -> operation.get());
     }
     
-    /**
-     * Exécute une opération void avec circuit breaker
-     */
     protected void executeWithCircuitBreaker(Runnable operation) throws Exception {
         circuitBreaker.execute(() -> {
             operation.run();
@@ -571,9 +618,6 @@ public abstract class Service implements Heartbeat, DeathWatch {
     public boolean isRunning() { return state == ServiceState.RUNNING; }
     public List<String> getInputsCommands() { return new ArrayList<>(inputsCommands); }
     
-    /**
-     * Retourne un statut complet du service avec toutes ses métriques
-     */
     public ServiceStatus getFullStatus() {
         return new ServiceStatus(
             id, name, state, isAlive(),
@@ -589,9 +633,6 @@ public abstract class Service implements Heartbeat, DeathWatch {
                            watchedServices.size(), circuitBreaker.getState());
     }
     
-    /**
-     * Classe interne pour le statut complet
-     */
     public static class ServiceStatus {
         public final String id;
         public final String name;
