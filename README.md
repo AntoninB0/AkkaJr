@@ -17,6 +17,15 @@ docker run -p 8080:8080 akkajr
 localhost:8080
 ```
 
+# Tests du système d'acteurs
+
+Exécuter uniquement les tests du système d'acteurs (Windows PowerShell) :
+
+```sh
+cd ./akkajr/
+./mvnw.cmd test -Dtest=ActorSystemTests
+```
+
 # Vs Code extension
 
 https://marketplace.visualstudio.com/items?itemName=Al-rimi.tomcat
