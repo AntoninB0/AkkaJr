@@ -1,8 +1,15 @@
 package com.example.akkajr.core;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * Hyperviseur qui supervise et récupère automatiquement les services
@@ -45,7 +52,7 @@ public class Hypervisor implements Supervisor {
         String serviceName = failedService.getName();
         String serviceId = failedService.getId();
         
-        LOGGER.severe("⚠️ ÉCHEC DÉTECTÉ: " + serviceName + " [" + serviceId + "]");
+        LOGGER.severe("ÉCHEC DÉTECTÉ: " + serviceName + " [" + serviceId + "]");
         if (cause != null) {
             LOGGER.severe("Cause: " + cause.getMessage());
         }
@@ -54,10 +61,10 @@ public class Hypervisor implements Supervisor {
         
         // Applique la stratégie selon le mode
         if (supervisionMode == Supervisor.SupervisionMode.ONE_FOR_ONE) {
-            LOGGER.info("📋 Application ONE_FOR_ONE pour " + serviceName);
+            LOGGER.info("Application ONE_FOR_ONE pour " + serviceName);
             recoverService(failedService);
         } else {
-            LOGGER.warning("📋 Application ALL_FOR_ONE pour TOUS les services");
+            LOGGER.warning("Application ALL_FOR_ONE pour TOUS les services");
             LOGGER.warning("   Cause: échec de " + serviceName);
             
             // Récupère tous les services
@@ -90,7 +97,7 @@ public class Hypervisor implements Supervisor {
      */
     public void registerService(Service service) {
         services.put(service.getId(), service);
-        LOGGER.info("✅ Service enregistré: " + service.getName() + " [" + service.getId() + "]");
+        LOGGER.info("Service enregistré: " + service.getName() + " [" + service.getId() + "]");
     }
     
     /**
@@ -100,7 +107,7 @@ public class Hypervisor implements Supervisor {
         Service removed = services.remove(serviceId);
         serviceDecisions.remove(serviceId);
         if (removed != null) {
-            LOGGER.info("❌ Service désenregistré: " + removed.getName());
+            LOGGER.info("Service désenregistré: " + removed.getName());
         }
     }
     
@@ -116,7 +123,7 @@ public class Hypervisor implements Supervisor {
         }
         
         running = true;
-        LOGGER.info("🚀 Démarrage de l'hyperviseur");
+        LOGGER.info("Démarrage de l'hyperviseur");
         LOGGER.info("   Mode: " + supervisionMode);
         LOGGER.info("   Intervalle de vérification: " + healthCheckIntervalSeconds + "s");
         
@@ -134,7 +141,7 @@ public class Hypervisor implements Supervisor {
      */
     public void stop() {
         running = false;
-        LOGGER.info("🛑 Arrêt de l'hyperviseur");
+        LOGGER.info("Arrêt de l'hyperviseur");
         
         healthCheckScheduler.shutdown();
         recoveryExecutor.shutdown();
@@ -155,7 +162,7 @@ public class Hypervisor implements Supervisor {
      * Effectue les vérifications de santé sur tous les services
      */
     private void performHealthChecks() {
-        LOGGER.fine("💓 Health check en cours...");
+        LOGGER.fine("Health check en cours...");
         
         for (Service service : services.values()) {
             try {
@@ -176,7 +183,7 @@ public class Hypervisor implements Supervisor {
         
         // Vérifie si le service est vivant
         if (!service.isAlive() && service.getState() != Service.ServiceState.STOPPED) {
-            LOGGER.warning("💀 Service MORT détecté: " + serviceName + " [" + serviceId + "]");
+            LOGGER.warning("Service MORT détecté: " + serviceName + " [" + serviceId + "]");
             LOGGER.warning("   Dernier heartbeat: " + service.getLastHeartbeat());
             LOGGER.warning("   État: " + service.getState());
             
@@ -196,7 +203,7 @@ public class Hypervisor implements Supervisor {
         String serviceName = deadService.getName();
         String oldId = deadService.getId();
         
-        LOGGER.warning("🔄 RÉCUPÉRATION EN COURS pour: " + serviceName);
+        LOGGER.warning("RÉCUPÉRATION EN COURS pour: " + serviceName);
         
         try {
             // 1. Sauvegarde le snapshot
@@ -219,7 +226,7 @@ public class Hypervisor implements Supervisor {
             Service newService = createNewServiceInstance(deadService, snapshot);
             
             if (newService == null) {
-                LOGGER.severe("   ❌ Impossible de créer une nouvelle instance");
+                LOGGER.severe("  Impossible de créer une nouvelle instance");
                 return;
             }
             
@@ -233,19 +240,19 @@ public class Hypervisor implements Supervisor {
             services.remove(oldId);
             services.put(newService.getId(), newService);
             
-            LOGGER.info("   ✅ RÉCUPÉRATION RÉUSSIE: " + serviceName);
+            LOGGER.info("   RÉCUPÉRATION RÉUSSIE: " + serviceName);
             LOGGER.info("   Ancien ID: " + oldId);
             LOGGER.info("   Nouvel ID: " + newService.getId());
             LOGGER.info("   Commandes restaurées: " + snapshot.pendingCommands.size());
             
             // 7. Ré-exécute les commandes en attente
             if (!snapshot.pendingCommands.isEmpty()) {
-                LOGGER.info("   🔄 Ré-exécution des commandes en attente...");
+                LOGGER.info("   Ré-exécution des commandes en attente...");
                 newService.execute();
             }
             
         } catch (Exception e) {
-            LOGGER.severe("   ❌ ÉCHEC DE RÉCUPÉRATION pour " + serviceName + ": " + e.getMessage());
+            LOGGER.severe("   ÉCHEC DE RÉCUPÉRATION pour " + serviceName + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
