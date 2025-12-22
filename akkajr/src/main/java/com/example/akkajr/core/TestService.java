@@ -1,56 +1,71 @@
 package com.example.akkajr.core;
 
-import org.springframework.stereotype.Component;
-
+/**
+ * Service de test pour démonstration
+ */
 public class TestService extends Service {
     
-    private boolean shouldCrash = false;
-    private int executionCount = 0;
+    private Integer heartbeatTimeout;
+    private Boolean crashMode;
     
-    public TestService(String name) {
-        super(name);
+    public TestService(String id) {
+        super(id);
+        this.heartbeatTimeout = 10000; // 10 secondes par défaut
+        this.crashMode = false;
     }
     
     @Override
-    protected void onStart() throws Exception {
-        logger.info("🚀 Démarrage de " + name);
+    public void start() throws Exception {
+        logger.info("Démarrage du TestService {}", id);
+        setState(ServiceState.STARTING);
+        
+        startTime.set(System.currentTimeMillis());
+        alive.set(true);
+        updateHeartbeat();
+        
+        setState(ServiceState.RUNNING);
+        logger.info("TestService {} démarré", id);
     }
     
     @Override
-    protected void onStop() throws Exception {
-        logger.info("🛑 Arrêt de " + name);
+    public void stop() throws Exception {
+        logger.info("Arrêt du TestService {}", id);
+        setState(ServiceState.STOPPING);
+        
+        alive.set(false);
+        
+        setState(ServiceState.STOPPED);
+        logger.info("TestService {} arrêté", id);
     }
     
     @Override
-    public  void execute() throws Exception {
-        for (String command : inputsCommands) {
-            executionCount++;
-            logger.info("⚙️ Exécution commande #" + executionCount + " : " + command);
-            
-            // Simule un travail
-            Thread.sleep(2000);
-            
-            // Simule un crash
-            if (shouldCrash && executionCount == 3) {
-                logger.severe("💥 CRASH SIMULÉ !");
-                // Arrête d'envoyer des heartbeats
-                while (true) {
-                    Thread.sleep(1000);
-                }
-            }
-            
-            ping();  // Heartbeat après chaque commande
+    public void execute() throws Exception {
+        logger.info("Exécution de {} commandes pour {}", commands.size(), id);
+        
+        for (String command : commands) {
+            logger.info("Exécution: {}", command);
+            // Simulation d'exécution
+            Thread.sleep(100);
         }
         
-        clearCommands();
+        logger.info("Exécution terminée pour {}", id);
     }
     
-    @Override
-    protected boolean validateConfiguration() {
-        return true;
+    // Getters/Setters spécifiques
+    
+    public Integer getHeartbeatTimeout() {
+        return heartbeatTimeout;
     }
     
-    public void setCrashMode(boolean shouldCrash) {
-        this.shouldCrash = shouldCrash;
+    public void setHeartbeatTimeout(Integer heartbeatTimeout) {
+        this.heartbeatTimeout = heartbeatTimeout;
+    }
+    
+    public Boolean getCrashMode() {
+        return crashMode;
+    }
+    
+    public void setCrashMode(Boolean crashMode) {
+        this.crashMode = crashMode;
     }
 }
