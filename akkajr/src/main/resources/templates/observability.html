@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Observability - AkkaJR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0b1224;
+        --panel: #0f1c35;
+        --muted: #8ea0c6;
+        --text: #e6ecff;
+        --accent: #34d399;
+        --accent-2: #f59e0b;
+        --danger: #f87171;
+        --grid-gap: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        background: radial-gradient(circle at 10% 20%, rgba(52, 211, 153, 0.06), transparent 25%),
+          radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.08), transparent 22%),
+          radial-gradient(circle at 30% 80%, rgba(52, 211, 153, 0.04), transparent 22%),
+          var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 28px;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 20px;
+        background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(15, 28, 53, 0.9));
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      .title {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .title h1 {
+        font-size: 26px;
+        letter-spacing: -0.01em;
+      }
+
+      .title p {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      nav a {
+        color: var(--text);
+        text-decoration: none;
+        margin-left: 16px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+        transition: all 0.2s ease;
+      }
+
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .grid {
+        display: grid;
+        gap: var(--grid-gap);
+      }
+
+      .stats {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+      }
+
+      .card h3 {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .card .value {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+      }
+
+      .badge.ok {
+        color: var(--accent);
+        border-color: rgba(52, 211, 153, 0.3);
+      }
+
+      .badge.warn {
+        color: var(--accent-2);
+        border-color: rgba(245, 158, 11, 0.35);
+      }
+
+      .badge.danger {
+        color: var(--danger);
+        border-color: rgba(248, 113, 113, 0.35);
+      }
+
+      .panels {
+        display: grid;
+        gap: var(--grid-gap);
+        grid-template-columns: 1.2fr 1fr;
+      }
+
+      .panel-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        font-size: 13px;
+        color: var(--text);
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .pill.badge-link {
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        margin-right: 6px;
+        background: var(--accent);
+      }
+
+      .status-dot.down {
+        background: var(--danger);
+      }
+
+      .status-dot.warn {
+        background: var(--accent-2);
+      }
+
+      ul.alerts {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .alert {
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(248, 113, 113, 0.08);
+        color: #ffe4e6;
+      }
+
+      .alert.warn {
+        background: rgba(245, 158, 11, 0.1);
+        color: #fef3c7;
+      }
+
+      .alert.info {
+        background: rgba(52, 211, 153, 0.12);
+        color: #d1fae5;
+      }
+
+      .feed {
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 14px;
+        padding: 14px;
+        height: 280px;
+        overflow-y: auto;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .feed .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .feed .row:last-child {
+        border-bottom: none;
+      }
+
+      .feed .tag {
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .feed .msg {
+        color: var(--text);
+        flex: 1;
+      }
+
+      .sparks {
+        display: grid;
+        gap: var(--grid-gap);
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .spark {
+        height: 64px;
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        padding: 8px 8px 4px 8px;
+      }
+
+      .spark .bar {
+        flex: 1;
+        border-radius: 6px 6px 2px 2px;
+        background: linear-gradient(180deg, rgba(52, 211, 153, 0.9), rgba(52, 211, 153, 0.25));
+        min-height: 4px;
+      }
+
+      .spark.failed .bar {
+        background: linear-gradient(180deg, rgba(248, 113, 113, 0.9), rgba(248, 113, 113, 0.28));
+      }
+
+      .spark.backlog .bar {
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.9), rgba(245, 158, 11, 0.28));
+      }
+
+      .spark-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .pill {
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        font-size: 11px;
+      }
+
+      @media (max-width: 900px) {
+        .panels {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        nav {
+          width: 100%;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="title">
+          <h1>Observability</h1>
+          <p>Live actor metrics, backlog and alerts</p>
+        </div>
+        <nav>
+          <a href="/">Hypervisor</a>
+          <a href="/observability" style="border-color: rgba(52, 211, 153, 0.4); color: var(--accent);">Observability</a>
+        </nav>
+      </header>
+
+      <section class="grid stats">
+        <div class="card">
+          <h3>Total actors</h3>
+          <div class="value" id="totalActors">--</div>
+          <div class="badge" id="actorSplit">-- user / -- system</div>
+        </div>
+        <div class="card">
+          <h3>Backlog</h3>
+          <div class="value" id="backlog">--</div>
+          <div class="badge" id="backlogBadge">--</div>
+        </div>
+        <div class="card">
+          <h3>Health</h3>
+          <div class="value" id="healthStatus">--</div>
+          <div class="badge" id="healthBadge">--</div>
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
+            <a class="pill badge-link" href="/actuator/health" target="_blank" rel="noopener">/actuator/health</a>
+            <a class="pill badge-link" href="/actuator/prometheus" target="_blank" rel="noopener">/actuator/prometheus</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Messages processed</h3>
+          <div class="value" id="processed">--</div>
+          <div class="badge" id="processedBadge">--</div>
+        </div>
+        <div class="card">
+          <h3>Messages failed</h3>
+          <div class="value" id="failed">--</div>
+          <div class="badge" id="failedBadge">--</div>
+        </div>
+        <div class="card">
+          <h3>Paused actors</h3>
+          <div class="value" id="paused">--</div>
+          <div class="badge" id="pausedBadge">--</div>
+        </div>
+      </section>
+
+      <section class="panels">
+        <div class="card">
+          <div class="panel-title">
+            <span>Alerts</span>
+            <span class="pill" id="alertsCount">0 active</span>
+          </div>
+          <ul class="alerts" id="alertsList">
+            <li class="alert info">Waiting for stream...</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="panel-title">
+            <span>Live feed</span>
+            <span class="pill" id="streamState">connecting...</span>
+          </div>
+          <div class="feed" id="feed"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="panel-title">
+          <span>Actors detail</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="pill" id="actorsCount">-- actors</span>
+            <button onclick="loadActorsDetail()" style="padding:8px 12px; background: #1f2f4d; border: 1px solid rgba(255,255,255,0.08); color: var(--text); border-radius: 10px; cursor: pointer;">Refresh</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Actor</th>
+                <th>Scope</th>
+                <th>Backlog</th>
+                <th>Processed</th>
+                <th>Failed</th>
+                <th>Paused</th>
+                <th>Guardian</th>
+              </tr>
+            </thead>
+            <tbody id="actorsTable">
+              <tr><td colspan="7" style="color: var(--muted);">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="sparks">
+        <div class="card">
+          <div class="spark-title">
+            <span>Backlog trend</span>
+            <span class="pill" id="backlogMax">--</span>
+          </div>
+          <div class="spark backlog" id="sparkBacklog"></div>
+        </div>
+        <div class="card">
+          <div class="spark-title">
+            <span>Processed</span>
+            <span class="pill" id="processedMax">--</span>
+          </div>
+          <div class="spark" id="sparkProcessed"></div>
+        </div>
+        <div class="card">
+          <div class="spark-title">
+            <span>Failed</span>
+            <span class="pill" id="failedMax">--</span>
+          </div>
+          <div class="spark failed" id="sparkFailed"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const endpoints = {
+        snapshot: "/api/metrics/actors",
+        alerts: "/api/metrics/alerts",
+        stream: "/api/metrics/stream",
+        detail: "/api/metrics/actors/detail",
+        health: "/actuator/health",
+        events: "/api/metrics/events",
+      };
+
+      const state = {
+        series: {
+          backlog: [],
+          processed: [],
+          failed: [],
+        },
+        maxPoints: 40,
+        health: "--",
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      const fmt = (n) =>
+        typeof n === "number" ? n.toLocaleString("fr-FR") : "--";
+
+      function pushSeries(key, value) {
+        const arr = state.series[key];
+        arr.push(Math.max(0, value || 0));
+        if (arr.length > state.maxPoints) {
+          arr.shift();
+        }
+      }
+
+      function renderSpark(containerId, values, pillId) {
+        const el = $(containerId);
+        el.innerHTML = "";
+        if (!values.length) return;
+        const max = Math.max(...values, 1);
+        values.forEach((v) => {
+          const bar = document.createElement("div");
+          bar.className = "bar";
+          bar.style.height = `${Math.max(4, (v / max) * 100)}%`;
+          el.appendChild(bar);
+        });
+        if (pillId) {
+          $(pillId).textContent = `max ${fmt(max)}`;
+        }
+      }
+
+      function setBadge(id, text, level) {
+        const el = $(id);
+        el.textContent = text;
+        el.className = `badge ${level}`;
+      }
+
+      function updateSnapshot(snapshot) {
+        if (!snapshot) return;
+        $("totalActors").textContent = fmt(snapshot.totalActors);
+        $("actorSplit").textContent = `${fmt(snapshot.userActors)} user / ${fmt(
+          snapshot.systemActors
+        )} system`;
+
+        $("backlog").textContent = fmt(snapshot.totalBacklog);
+        const backlogLevel = snapshot.totalBacklog > 1000 ? "danger" : snapshot.totalBacklog > 200 ? "warn" : "ok";
+        setBadge("backlogBadge", backlogLevel.toUpperCase(), backlogLevel);
+
+        $("processed").textContent = fmt(snapshot.messagesProcessed);
+        setBadge("processedBadge", "throughput", "ok");
+
+        $("failed").textContent = fmt(snapshot.messagesFailed);
+        const failLevel = snapshot.messagesFailed > 0 ? "warn" : "ok";
+        setBadge("failedBadge", failLevel === "warn" ? "attention" : "clean", failLevel);
+
+        $("paused").textContent = fmt(snapshot.pausedActors);
+        const pausedLevel = snapshot.pausedActors > 0 ? "warn" : "ok";
+        setBadge("pausedBadge", pausedLevel === "warn" ? "paused" : "running", pausedLevel);
+
+        pushSeries("backlog", snapshot.totalBacklog);
+        pushSeries("processed", snapshot.messagesProcessed);
+        pushSeries("failed", snapshot.messagesFailed);
+
+        renderSpark("sparkBacklog", state.series.backlog, "backlogMax");
+        renderSpark("sparkProcessed", state.series.processed, "processedMax");
+        renderSpark("sparkFailed", state.series.failed, "failedMax");
+      }
+
+      function updateHealth(status) {
+        state.health = status || "unknown";
+        const level = status === "UP" ? "ok" : status === "OUT_OF_SERVICE" ? "warn" : "danger";
+        $("healthStatus").textContent = status || "--";
+        setBadge("healthBadge", status || "--", level);
+      }
+
+      async function loadHealth() {
+        try {
+          const res = await fetch(endpoints.health);
+          if (!res.ok) throw new Error("health fetch failed");
+          const data = await res.json();
+          updateHealth(data.status || "--");
+        } catch (e) {
+          updateHealth("DOWN");
+          pushFeed("error", "Health check failed");
+        }
+      }
+
+      async function loadActorsDetail() {
+        try {
+          const res = await fetch(endpoints.detail);
+          if (!res.ok) throw new Error("detail fetch failed");
+          const data = await res.json();
+          const tbody = $("actorsTable");
+          tbody.innerHTML = "";
+          $("actorsCount").textContent = `${data.length} actors`;
+          if (!data.length) {
+            tbody.innerHTML = '<tr><td colspan="5" style="color: var(--muted);">No actors</td></tr>';
+            return;
+          }
+          data
+            .sort((a, b) => a.path.localeCompare(b.path))
+            .forEach((actor) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${actor.path}</td>
+                <td>${actor.scope}${actor.guardian ? " (guardian)" : ""}</td>
+                <td>${fmt(actor.backlog)}</td>
+                <td>${fmt(actor.processed)}</td>
+                <td>${fmt(actor.failed)}</td>
+                <td>${actor.paused ? "yes" : "no"}</td>
+                <td>${actor.guardian ? "yes" : "no"}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+        } catch (e) {
+          $("actorsTable").innerHTML = '<tr><td colspan="7" style="color: var(--danger);">Failed to load actors</td></tr>';
+          pushFeed("error", "Actors detail fetch failed");
+        }
+      }
+
+      function renderAlerts(alerts) {
+        const list = $("alertsList");
+        list.innerHTML = "";
+        if (!alerts || alerts.length === 0) {
+          list.innerHTML = '<li class="alert info">No active alerts</li>';
+          $("alertsCount").textContent = "0 active";
+          return;
+        }
+        $("alertsCount").textContent = `${alerts.length} active`;
+        alerts.forEach((a) => {
+          const li = document.createElement("li");
+          const levelClass = a.level ? a.level.toLowerCase() : "warn";
+          li.className = `alert ${levelClass}`;
+          li.textContent = `[${a.code || "alert"}] ${a.message}`;
+          list.appendChild(li);
+        });
+      }
+
+      function pushFeed(kind, message) {
+        const feed = $("feed");
+        const row = document.createElement("div");
+        row.className = "row";
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = `[${kind}]`;
+        const msg = document.createElement("span");
+        msg.className = "msg";
+        msg.textContent = message;
+        row.appendChild(tag);
+        row.appendChild(msg);
+        feed.prepend(row);
+        while (feed.children.length > 50) {
+          feed.removeChild(feed.lastChild);
+        }
+      }
+
+      async function loadEvents() {
+        try {
+          const res = await fetch(endpoints.events);
+          if (!res.ok) return;
+          const data = await res.json();
+          data.slice(-30).forEach((evt) => {
+            const msg = `${new Date(evt.timestamp).toLocaleTimeString()} ${evt.type} ${evt.path} msg=${evt.messageId || "-"} trace=${evt.traceId || "-"} ${evt.detail ? "err=" + evt.detail : ""}`;
+            pushFeed(evt.type, msg);
+          });
+        } catch (e) {
+          pushFeed("error", "Events fetch failed");
+        }
+      }
+
+      async function loadOnce() {
+        try {
+          const [snapRes, alertRes] = await Promise.all([
+            fetch(endpoints.snapshot),
+            fetch(endpoints.alerts),
+          ]);
+          if (snapRes.ok) {
+            updateSnapshot(await snapRes.json());
+          }
+          if (alertRes.ok) {
+            renderAlerts(await alertRes.json());
+          }
+          await loadHealth();
+          await loadActorsDetail();
+          await loadEvents();
+        } catch (e) {
+          pushFeed("error", "Initial fetch failed");
+        }
+      }
+
+      function startStream() {
+        $("streamState").textContent = "connecting";
+        const es = new EventSource(endpoints.stream);
+
+        es.addEventListener("metrics", (evt) => {
+          try {
+            const data = JSON.parse(evt.data);
+            updateSnapshot(data);
+            pushFeed("metrics", `actors=${data.totalActors}, backlog=${data.totalBacklog}`);
+          } catch (e) {
+            pushFeed("error", "Failed to parse metrics event");
+          }
+        });
+
+        es.addEventListener("alerts", (evt) => {
+          try {
+            const data = JSON.parse(evt.data);
+            renderAlerts(data);
+            pushFeed("alerts", `${data.length} alert(s)`);
+          } catch (e) {
+            pushFeed("error", "Failed to parse alerts event");
+          }
+        });
+
+        es.onopen = () => {
+          $("streamState").textContent = "live";
+        };
+
+        es.onerror = () => {
+          $("streamState").textContent = "reconnecting...";
+          pushFeed("stream", "disconnected, retrying");
+          es.close();
+          setTimeout(startStream, 3000);
+        };
+      }
+
+      (async function bootstrap() {
+        await loadOnce();
+        startStream();
+        setInterval(loadActorsDetail, 5000);
+        setInterval(loadHealth, 5000);
+        setInterval(loadEvents, 4000);
+      })();
+    </script>
+  </body>
+</html>

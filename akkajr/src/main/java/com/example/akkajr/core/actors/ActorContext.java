@@ -39,4 +39,42 @@ public final class ActorContext {
     public ActorRef actorOf(Props props) {
         return actorOf(props, null);
     }
+
+    /**
+     * Create an actor under the /system guardian (for internal services).
+     */
+    public ActorRef actorOfSystem(Props props, String name) {
+        return system.actorOfSystem(props, name);
+    }
+
+    public void stop(ActorRef ref) {
+        system.stop(ref);
+    }
+
+    public void stopSelf() {
+        system.stop(self);
+    }
+
+    public void pause(ActorRef ref) {
+        system.pause(ref);
+    }
+
+    public void pauseSelf() {
+        system.pause(self);
+    }
+
+    public void resume(ActorRef ref) {
+        system.resume(ref);
+    }
+
+    public void resumeSelf() {
+        system.resume(self);
+    }
+
+    /**
+     * Look up an actor by absolute path (e.g. /user/parent/child).
+     */
+    public ActorRef actorSelection(String absolutePath) {
+        return system.actorSelection(absolutePath);
+    }
 }
