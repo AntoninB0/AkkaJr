@@ -55,6 +55,10 @@
 			<artifactId>akka-serialization-jackson_${scala.binary.version}</artifactId>
 			<version>${akka.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
