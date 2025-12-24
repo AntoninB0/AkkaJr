@@ -1,0 +1,12 @@
+# Dockerfile pour exécuter les tests
+FROM maven:3.9-eclipse-temurin-21
+
+WORKDIR /app
+
+# Copier les fichiers nécessaires
+COPY pom.xml .
+COPY src ./src
+
+# Exécuter les tests
+CMD ["mvn", "clean", "test"]
+

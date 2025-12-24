@@ -1,0 +1,11 @@
+# Dockerfile simple pour tests (sans cache Maven)
+FROM maven:3.9-eclipse-temurin-21
+
+WORKDIR /app
+
+# Copier tout le projet
+COPY . .
+
+# Exécuter les tests
+RUN mvn clean test
+

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Service pour exécuter les tests
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+      - maven-cache:/root/.m2
+    environment:
+      - MAVEN_OPTS=-Xmx1024m
+    command: mvn clean test
+
+  # Service pour exécuter uniquement les tests d'intégration
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+      - maven-cache:/root/.m2
+    environment:
+      - MAVEN_OPTS=-Xmx1024m
+    command: mvn clean test -Dtest="*IntegrationTest"
+
+  # Service pour exécuter uniquement les tests unitaires
+  unit-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+      - maven-cache:/root/.m2
+    environment:
+      - MAVEN_OPTS=-Xmx1024m
+    command: mvn clean test -Dtest="!*IntegrationTest"
+
+volumes:
+  maven-cache:
+
