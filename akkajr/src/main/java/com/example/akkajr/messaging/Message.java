@@ -5,6 +5,7 @@ public class Message {
     private String receiverId;
     private String content;
     private long timestamp;
+    private String originService; // Nouveau champ pour tracker l'origine
 
     public Message() {}
 
@@ -19,11 +20,13 @@ public class Message {
     public String getReceiverId() { return receiverId; }
     public String getContent() { return content; }
     public long getTimestamp() { return timestamp; }
+    public String getOriginService() { return originService; } // Getter
 
     public void setSenderId(String senderId) { this.senderId = senderId; }
     public void setReceiverId(String receiverId) { this.receiverId = receiverId; }
     public void setContent(String content) { this.content = content; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+    public void setOriginService(String originService) { this.originService = originService; } // Setter
 
     @Override
     public String toString() {
@@ -32,6 +35,7 @@ public class Message {
                 ", receiverId='" + receiverId + '\'' +
                 ", content='" + content + '\'' +
                 ", timestamp=" + timestamp +
+                ", originService='" + originService + '\'' +
                 '}';
     }
 }
