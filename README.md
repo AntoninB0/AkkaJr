@@ -96,7 +96,7 @@ Write-Host "`n=== LOGS (30 dernières lignes) ===" -ForegroundColor Yellow
 docker logs --tail 30 $(docker ps -q)
 ```
 
-# Bloc 9 – Monitoring & Observabilité
+# Monitoring & Observabilité
 
 - Endpoints principaux
 	- UI live: http://localhost:8080/observability (SSE metrics/alerts, tableau par acteur, health, feed d'événements)
@@ -111,17 +111,8 @@ docker logs --tail 30 $(docker ps -q)
 - Lancer l'app localement
 	```sh
 	cd akkajr
-	JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH="$JAVA_HOME/bin:$PATH" ./mvnw spring-boot:run
+	./mvnw spring-boot:run
 	# Ouvrir /observability pour le dashboard
-	```
-
-- Générer de l'activité pour observer les métriques
-	```sh
-	# init des acteurs de démo
-	curl -X POST http://localhost:8080/api/actors/init
-	# rafale de commandes pour voir processed/backlog/latence
-	seq 1 200 | xargs -I{} -P20 curl -s -X POST http://localhost:8080/api/actors/order \
-		-H "Content-Type: application/json" -d '{"items":["A","B","C"]}' >/dev/null
 	```
 
 - Ce qui est instrumenté
@@ -131,6 +122,4 @@ docker logs --tail 30 $(docker ps -q)
 	- Traçabilité: msgId/traceId dans logs et dans /api/metrics/events (feed UI).
 	- Alertes: backlog/paused/messages_failed surfacent dans SSE et UI.
 
-- Notes pratiques
-	- Les acteurs temporaires `actor-*` proviennent des `ask` (TempActor) et sont visibles dans les métriques; c'est normal.
-	- Si besoin de nettoyer le feed UI, désactiver le polling /api/metrics/events ou filtrer les anciens msgId/traceId.
+
