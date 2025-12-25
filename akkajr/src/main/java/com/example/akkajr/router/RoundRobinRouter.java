@@ -1,23 +1,34 @@
 package com.example.akkajr.router;
 
-import com.example.akkajr.core.actors.ActorRef;
+import org.springframework.stereotype.Component;
+
 import java.util.List;
 
+
+/**
+ * Implémente la stratégie Round Robin : distribue les messages un par un
+ * à chaque worker de la liste de manière circulaire.
+ */
+@Component("roundRobinRouter")
 public class RoundRobinRouter extends AbstractRouter{
 	
 	private int index = 0;
 	
-	public RoundRobinRouter(List<ActorRef> routes) {
-		super(routes);
+	public RoundRobinRouter(List<String> routeIds) {
+		super(routeIds);
 	}
 	
 	@Override
-	protected ActorRef selectRoute() {
-		if (routes.isEmpty()) return null;
+	protected String selectRoute() {
+		if (routeIds == null || routeIds.isEmpty()) {
+			return null;
+		}
 		
-		ActorRef ref = routes.get(index);
-		index = (index + 1) % routes.size();
-		return ref;
+		// Sélection de l'ID actuel
+        String targetId = routeIds.get(index);
+        
+		index = (index + 1) % routeIds.size();
+		return targetId;
 	}
 	
 
