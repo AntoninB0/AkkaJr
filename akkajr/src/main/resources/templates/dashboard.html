@@ -19,7 +19,11 @@
         }
 
         .container {
+<<<<<<< HEAD
             max-width: 1400px;
+=======
+            max-width: 1600px;
+>>>>>>> pre-merge
             margin: 0 auto;
         }
 
@@ -221,6 +225,85 @@
             color: #666;
             font-size: 14px;
         }
+<<<<<<< HEAD
+=======
+
+        /* NEW: Logs panel styles */
+        .logs-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .log-panel {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-entry.remote {
+            color: #f39c12;
+        }
+
+        .log-entry.local {
+            color: #3498db;
+        }
+
+        .log-entry.error {
+            color: #e74c3c;
+        }
+
+        .log-entry.info {
+            color: #2ecc71;
+        }
+
+        .log-timestamp {
+            color: #888;
+            margin-right: 10px;
+        }
+
+        /* NEW: Communication diagram */
+        .comm-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .comm-line {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .comm-line.remote {
+            border-left-color: #f39c12;
+        }
+
+        .comm-line.error {
+            border-left-color: #e74c3c;
+        }
+
+        .comm-arrow {
+            margin: 0 10px;
+            font-size: 1.5em;
+        }
+>>>>>>> pre-merge
     </style>
 </head>
 <body>
@@ -252,20 +335,69 @@
 
         <!-- Communication Flow -->
         <div class="panel">
+<<<<<<< HEAD
             <h2>Communication Inter-Microservices</h2>
+=======
+            <h2>📡 Communication Inter-Microservices</h2>
+>>>>>>> pre-merge
             <div class="communication-flow">
                 <div class="service-box">
                     <h3>Service 1 (Port 8080)</h3>
                     <div id="service1Status" class="status-badge status-alive">🟢 Online</div>
+<<<<<<< HEAD
+=======
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Messages: <span id="service1MessageCount">0</span>
+                    </div>
+>>>>>>> pre-merge
                 </div>
                 <div class="arrow">⇄</div>
                 <div class="service-box">
                     <h3>Service 2 (Port 8081)</h3>
                     <div id="service2Status" class="status-badge status-alive">🟢 Online</div>
+<<<<<<< HEAD
+=======
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Messages: <span id="service2MessageCount">0</span>
+                    </div>
+>>>>>>> pre-merge
                 </div>
             </div>
         </div>
 
+<<<<<<< HEAD
+=======
+        <!-- NEW: Real-time Communication Logs -->
+        <div class="panel">
+            <h2>📋 Logs de Communication en Temps Réel</h2>
+            <button onclick="refreshLogs()" class="btn-success">🔄 Rafraîchir Logs</button>
+            <button onclick="clearLogs()" class="btn-danger">🗑️ Effacer</button>
+            <div class="logs-container" style="margin-top: 15px;">
+                <div>
+                    <h3 style="color: #3498db; margin-bottom: 10px;">Service 1 Logs</h3>
+                    <div id="service1Logs" class="log-panel">
+                        <div class="log-entry info">En attente de logs...</div>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="color: #e74c3c; margin-bottom: 10px;">Service 2 Logs</h3>
+                    <div id="service2Logs" class="log-panel">
+                        <div class="log-entry info">En attente de logs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Communication Flow Diagram -->
+        <div class="panel">
+            <h2>🔄 Flux de Communication Récent</h2>
+            <button onclick="refreshCommFlow()" class="btn-success">🔄 Rafraîchir</button>
+            <div id="commFlowDiagram" class="comm-diagram" style="margin-top: 15px;">
+                <p style="text-align: center; color: #999;">Aucune communication récente</p>
+            </div>
+        </div>
+
+>>>>>>> pre-merge
         <!-- Send Message Panel -->
         <div class="panel">
             <h2>📤 Envoyer un Message</h2>
@@ -336,10 +468,137 @@
         const SERVICE1_URL = 'http://localhost:8080';
         const SERVICE2_URL = 'http://localhost:8081';
         const CURRENT_SERVICE = '{{serviceName}}' || 'service1';
+<<<<<<< HEAD
+=======
+        const CURRENT_SERVICE_URL = window.location.origin;
+>>>>>>> pre-merge
 
         // Affiche le nom du service actuel
         document.getElementById('currentServiceName').textContent = CURRENT_SERVICE;
 
+<<<<<<< HEAD
+=======
+        // NEW: Refresh logs from both services
+        async function refreshLogs() {
+            const log1 = document.getElementById('service1Logs');
+            const log2 = document.getElementById('service2Logs');
+            
+            log1.innerHTML = '<div class="log-entry info">Chargement...</div>';
+            log2.innerHTML = '<div class="log-entry info">Chargement...</div>';
+
+            try {
+                // Fetch logs from both services
+                const [logs1, logs2] = await Promise.allSettled([
+                    fetch(`${SERVICE1_URL}/api/messages/logs`).then(r => r.ok ? r.json() : null),
+                    fetch(`${SERVICE2_URL}/api/messages/logs`).then(r => r.ok ? r.json() : null)
+                ]);
+
+                // Display Service 1 logs
+                if (logs1.status === 'fulfilled' && logs1.value) {
+                    displayLogs(log1, logs1.value, 'service1');
+                } else {
+                    log1.innerHTML = '<div class="log-entry error">Service 1 non disponible</div>';
+                }
+
+                // Display Service 2 logs
+                if (logs2.status === 'fulfilled' && logs2.value) {
+                    displayLogs(log2, logs2.value, 'service2');
+                } else {
+                    log2.innerHTML = '<div class="log-entry error">Service 2 non disponible</div>';
+                }
+            } catch (error) {
+                console.error('Erreur logs:', error);
+                log1.innerHTML = '<div class="log-entry error">Erreur: ' + error.message + '</div>';
+                log2.innerHTML = '<div class="log-entry error">Erreur: ' + error.message + '</div>';
+            }
+        }
+
+        // NEW: Display logs in log panel
+        function displayLogs(container, logsData, serviceName) {
+            container.innerHTML = '';
+            
+            if (!logsData.entries || logsData.entries.length === 0) {
+                container.innerHTML = '<div class="log-entry info">Aucun log disponible</div>';
+                return;
+            }
+
+            // Sort by timestamp (newest first)
+            const sortedLogs = logsData.entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            sortedLogs.forEach(entry => {
+                const logEntry = document.createElement('div');
+                const logClass = entry.isRemote ? 'remote' : 'local';
+                const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : 'N/A';
+                
+                logEntry.className = `log-entry ${logClass}`;
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <strong>${entry.type || 'MSG'}</strong> 
+                    ${entry.sender || 'N/A'} → ${entry.receiver || 'N/A'}
+                    ${entry.isRemote ? '🌐' : '🏠'}
+                    <br>
+                    <span style="color: #aaa; margin-left: 20px;">${entry.content || ''}</span>
+                `;
+                container.appendChild(logEntry);
+            });
+        }
+
+        // NEW: Refresh communication flow diagram
+        async function refreshCommFlow() {
+            const diagram = document.getElementById('commFlowDiagram');
+            diagram.innerHTML = '<p style="text-align: center; color: #999;">Chargement...</p>';
+
+            try {
+                const [history1, history2] = await Promise.allSettled([
+                    fetch(`${SERVICE1_URL}/api/messages/history`).then(r => r.ok ? r.json() : []),
+                    fetch(`${SERVICE2_URL}/api/messages/history`).then(r => r.ok ? r.json() : [])
+                ]);
+
+                const allMessages = [];
+                if (history1.status === 'fulfilled') {
+                    allMessages.push(...(history1.value || []).map(m => ({...m, _source: 'service1'})));
+                }
+                if (history2.status === 'fulfilled') {
+                    allMessages.push(...(history2.value || []).map(m => ({...m, _source: 'service2'})));
+                }
+
+                // Sort by timestamp, get last 10
+                allMessages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                const recentMessages = allMessages.slice(0, 10);
+
+                diagram.innerHTML = '';
+                if (recentMessages.length === 0) {
+                    diagram.innerHTML = '<p style="text-align: center; color: #999;">Aucune communication récente</p>';
+                    return;
+                }
+
+                recentMessages.forEach(msg => {
+                    const isRemote = msg.originService != null && msg.originService !== '';
+                    const fromService = msg._source || 'unknown';
+                    const toService = isRemote ? (msg.receiverId?.includes('service2') ? 'service2' : 'service1') : fromService;
+                    
+                    const line = document.createElement('div');
+                    line.className = `comm-line ${isRemote ? 'remote' : ''}`;
+                    line.innerHTML = `
+                        <strong>${fromService}</strong>
+                        <span class="comm-arrow">${isRemote ? '→→' : '→'}</span>
+                        <strong>${toService}</strong>
+                        <span style="margin-left: 20px; color: #666;">
+                            ${msg.futureResponse ? '🔴 ASK' : '🔵 TELL'} 
+                            ${msg.senderId || 'N/A'} → ${msg.receiverId || 'N/A'}
+                        </span>
+                        <span style="margin-left: 20px; font-size: 11px; color: #999;">
+                            ${msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                        </span>
+                    `;
+                    diagram.appendChild(line);
+                });
+            } catch (error) {
+                diagram.innerHTML = '<p style="text-align: center; color: #e74c3c;">Erreur: ' + error.message + '</p>';
+            }
+        }
+
+>>>>>>> pre-merge
         // Envoie un message
         async function sendMessage() {
             const messageType = document.getElementById('messageType').value;
@@ -353,9 +612,23 @@
             }
 
             const isRemote = receiverId.includes(':');
+<<<<<<< HEAD
             const targetService = isRemote ? 
                 (receiverId.startsWith('service1:') ? SERVICE1_URL : SERVICE2_URL) :
                 SERVICE1_URL; // Par défaut, envoie depuis service1
+=======
+            let targetService = CURRENT_SERVICE_URL;
+            if (isRemote) {
+                if (receiverId.startsWith('service1:')) {
+                    targetService = SERVICE1_URL;
+                } else if (receiverId.startsWith('service2:')) {
+                    targetService = SERVICE2_URL;
+                } else {
+                    const serviceName = receiverId.split(':')[0];
+                    targetService = serviceName === 'service1' ? SERVICE1_URL : SERVICE2_URL;
+                }
+            }
+>>>>>>> pre-merge
 
             const endpoint = messageType === 'ask' ? '/api/messages/ask' : '/api/messages/tell';
             const messageBody = {
@@ -371,12 +644,31 @@
                     body: JSON.stringify(messageBody)
                 });
 
+<<<<<<< HEAD
                 const result = await response.text();
                 alert(`Message envoyé!\n${result}`);
                 document.getElementById('messageContent').value = '';
                 refreshHistory();
                 refreshStats();
             } catch (error) {
+=======
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.text();
+                alert(`Message envoyé!\n${result}`);
+                document.getElementById('messageContent').value = '';
+                
+                // Refresh all views
+                refreshHistory();
+                refreshStats();
+                refreshLogs();
+                refreshCommFlow();
+            } catch (error) {
+                console.error('Erreur détaillée:', error);
+>>>>>>> pre-merge
                 alert('Erreur: ' + error.message);
             }
         }
@@ -388,12 +680,18 @@
                 : document.getElementById('inboxAgent2').value;
 
             if (!agentId) {
+<<<<<<< HEAD
                 alert('Veuillez entrer un Agent ID');
+=======
+                const listId = service === 'service1' ? 'inbox1List' : 'inbox2List';
+                document.getElementById(listId).innerHTML = '<p style="text-align: center; color: #999;">Veuillez entrer un Agent ID</p>';
+>>>>>>> pre-merge
                 return;
             }
 
             const serviceUrl = service === 'service1' ? SERVICE1_URL : SERVICE2_URL;
             const listId = service === 'service1' ? 'inbox1List' : 'inbox2List';
+<<<<<<< HEAD
 
             try {
                 const response = await fetch(`${serviceUrl}/api/messages/inbox/${agentId}`);
@@ -403,6 +701,25 @@
                 list.innerHTML = '';
 
                 if (messages.length === 0) {
+=======
+            const list = document.getElementById(listId);
+
+            let messages = [];
+            try {
+                const encodedAgentId = encodeURIComponent(agentId);
+                const response = await fetch(`${serviceUrl}/api/messages/inbox/${encodedAgentId}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => 'Erreur inconnue');
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json().catch(() => []);
+                messages = Array.isArray(data) ? data : [];
+                list.innerHTML = '';
+
+                if (!messages || messages.length === 0) {
+>>>>>>> pre-merge
                     list.innerHTML = '<p style="text-align: center; color: #999;">Aucun message</p>';
                     return;
                 }
@@ -413,17 +730,26 @@
                     item.innerHTML = `
                         <div class="message-header">
                             ${msg.futureResponse ? '🔴 ASK' : '🔵 TELL'} 
+<<<<<<< HEAD
                             de ${msg.senderId} → ${msg.receiverId}
                         </div>
                         <div class="message-content">${msg.content}</div>
                         <div class="message-meta">
                             ${new Date(msg.timestamp).toLocaleString()}
+=======
+                            de ${msg.senderId || 'N/A'} → ${msg.receiverId || 'N/A'}
+                        </div>
+                        <div class="message-content">${msg.content || ''}</div>
+                        <div class="message-meta">
+                            ${msg.timestamp ? new Date(msg.timestamp).toLocaleString() : 'Date inconnue'}
+>>>>>>> pre-merge
                             ${msg.futureResponse ? '<br>⏳ En attente de réponse' : ''}
                         </div>
                     `;
                     list.appendChild(item);
                 });
             } catch (error) {
+<<<<<<< HEAD
                 console.error('Erreur:', error);
             }
         }
@@ -437,11 +763,57 @@
                 const list = document.getElementById('historyList');
                 list.innerHTML = '';
 
+=======
+                console.error('Erreur inbox:', error);
+                list.innerHTML = `<p style="text-align: center; color: #e74c3c;">Erreur: ${error.message}</p>`;
+            }
+        }
+
+        // Affiche l'historique (combine service1 + service2)
+        async function refreshHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '<p style="text-align: center; color: #666;">Chargement...</p>';
+
+            const endpoints = [
+                { url: `${SERVICE1_URL}/api/messages/history`, label: 'service1' },
+                { url: `${SERVICE2_URL}/api/messages/history`, label: 'service2' }
+            ];
+
+            try {
+                const results = await Promise.allSettled(
+                    endpoints.map(e => fetch(e.url).then(r => {
+                        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                        return r.json().then(data => ({ data, label: e.label }));
+                    }))
+                );
+
+                const messages = [];
+                results.forEach(res => {
+                    if (res.status === 'fulfilled') {
+                        (res.value.data || []).forEach(m => {
+                            messages.push({ ...m, _service: res.value.label });
+                        });
+                    }
+                });
+
+                // Update service message counts
+                const service1Count = messages.filter(m => m._service === 'service1').length;
+                const service2Count = messages.filter(m => m._service === 'service2').length;
+                document.getElementById('service1MessageCount').textContent = service1Count;
+                document.getElementById('service2MessageCount').textContent = service2Count;
+
+                list.innerHTML = '';
+>>>>>>> pre-merge
                 if (messages.length === 0) {
                     list.innerHTML = '<p style="text-align: center; color: #999;">Aucun message dans l\'historique</p>';
                     return;
                 }
 
+<<<<<<< HEAD
+=======
+                messages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+>>>>>>> pre-merge
                 messages.forEach(msg => {
                     const isRemote = msg.originService != null && msg.originService !== '';
                     const item = document.createElement('div');
@@ -449,31 +821,57 @@
                     item.innerHTML = `
                         <div class="message-header">
                             ${msg.futureResponse ? '🔴 ASK' : '🔵 TELL'} 
+<<<<<<< HEAD
                             ${isRemote ? '🌐 REMOTE (' + msg.originService + ')' : '🏠 LOCAL'}
                             ${msg.senderId} → ${msg.receiverId}
                         </div>
                         <div class="message-content">${msg.content}</div>
                         <div class="message-meta">
                             ${new Date(msg.timestamp || 0).toLocaleString()}
+=======
+                            ${isRemote ? '🌐 REMOTE (' + (msg.originService || 'unknown') + ')' : '🏠 LOCAL'}
+                            ${msg.senderId || 'N/A'} → ${msg.receiverId || 'N/A'}
+                            <span style="float:right;font-size:12px;color:#555;">${msg._service || ''}</span>
+                        </div>
+                        <div class="message-content">${msg.content || ''}</div>
+                        <div class="message-meta">
+                            ${msg.timestamp ? new Date(msg.timestamp).toLocaleString() : 'Date inconnue'}
+>>>>>>> pre-merge
                         </div>
                     `;
                     list.appendChild(item);
                 });
             } catch (error) {
+<<<<<<< HEAD
                 console.error('Erreur:', error);
+=======
+                console.error('Erreur history:', error);
+                list.innerHTML = `<p style="text-align: center; color: #e74c3c;">Erreur: ${error.message}</p>`;
+>>>>>>> pre-merge
             }
         }
 
         // Affiche les dead letters
         async function refreshDeadLetters() {
             try {
+<<<<<<< HEAD
                 const response = await fetch(`${SERVICE1_URL}/api/messages/deadletters`);
+=======
+                const response = await fetch(`${CURRENT_SERVICE_URL}/api/messages/deadletters`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+>>>>>>> pre-merge
                 const messages = await response.json();
 
                 const list = document.getElementById('deadLettersList');
                 list.innerHTML = '';
 
+<<<<<<< HEAD
                 if (messages.length === 0) {
+=======
+                if (!messages || messages.length === 0) {
+>>>>>>> pre-merge
                     list.innerHTML = '<p style="text-align: center; color: #999;">Aucun dead letter</p>';
                     return;
                 }
@@ -484,17 +882,30 @@
                     item.style.borderLeftColor = '#e74c3c';
                     item.innerHTML = `
                         <div class="message-header">
+<<<<<<< HEAD
                             💀 DEAD LETTER: ${msg.senderId} → ${msg.receiverId}
                         </div>
                         <div class="message-content">${msg.content}</div>
                         <div class="message-meta">
                             ${new Date(msg.timestamp || 0).toLocaleString()}
+=======
+                            💀 DEAD LETTER: ${msg.senderId || 'N/A'} → ${msg.receiverId || 'N/A'}
+                        </div>
+                        <div class="message-content">${msg.content || ''}</div>
+                        <div class="message-meta">
+                            ${msg.timestamp ? new Date(msg.timestamp).toLocaleString() : 'Date inconnue'}
+>>>>>>> pre-merge
                         </div>
                     `;
                     list.appendChild(item);
                 });
             } catch (error) {
                 console.error('Erreur:', error);
+<<<<<<< HEAD
+=======
+                const list = document.getElementById('deadLettersList');
+                list.innerHTML = `<p style="text-align: center; color: #e74c3c;">Erreur: ${error.message}</p>`;
+>>>>>>> pre-merge
             }
         }
 
@@ -502,6 +913,7 @@
         async function refreshStats() {
             try {
                 const [historyRes, deadLettersRes] = await Promise.all([
+<<<<<<< HEAD
                     fetch(`${SERVICE1_URL}/api/messages/history`),
                     fetch(`${SERVICE1_URL}/api/messages/deadletters`)
                 ]);
@@ -515,6 +927,25 @@
                 document.getElementById('totalMessages').textContent = history.length;
                 document.getElementById('remoteMessages').textContent = remoteCount;
                 document.getElementById('deadLetters').textContent = deadLetters.length;
+=======
+                    fetch(`${CURRENT_SERVICE_URL}/api/messages/history`),
+                    fetch(`${CURRENT_SERVICE_URL}/api/messages/deadletters`)
+                ]);
+
+                if (!historyRes.ok || !deadLettersRes.ok) {
+                    throw new Error('Erreur lors de la récupération des stats');
+                }
+
+                const history = await historyRes.json();
+                const deadLetters = await deadLettersRes.json();
+
+                const remoteCount = (history || []).filter(m => m.originService != null && m.originService !== '').length;
+                const pendingAsks = (history || []).filter(m => m.futureResponse && !m.futureResponse.done).length;
+
+                document.getElementById('totalMessages').textContent = (history || []).length;
+                document.getElementById('remoteMessages').textContent = remoteCount;
+                document.getElementById('deadLetters').textContent = (deadLetters || []).length;
+>>>>>>> pre-merge
                 document.getElementById('pendingAsks').textContent = pendingAsks;
             } catch (error) {
                 console.error('Erreur:', error);
@@ -523,20 +954,60 @@
 
         // Vérifie le statut des services
         async function checkServicesStatus() {
+<<<<<<< HEAD
             try {
                 await fetch(`${SERVICE1_URL}/api/messages/history`);
                 document.getElementById('service1Status').textContent = '🟢 Online';
                 document.getElementById('service1Status').className = 'status-badge status-alive';
             } catch {
+=======
+            // Service 1
+            const controller1 = new AbortController();
+            const timeout1 = setTimeout(() => controller1.abort(), 2000);
+            try {
+                const res = await fetch(`${SERVICE1_URL}/api/messages/stats`, { 
+                    method: 'GET', 
+                    signal: controller1.signal 
+                });
+                clearTimeout(timeout1);
+                if (res.ok) {
+                    document.getElementById('service1Status').textContent = '🟢 Online';
+                    document.getElementById('service1Status').className = 'status-badge status-alive';
+                } else {
+                    throw new Error('Service non disponible');
+                }
+            } catch {
+                clearTimeout(timeout1);
+>>>>>>> pre-merge
                 document.getElementById('service1Status').textContent = '🔴 Offline';
                 document.getElementById('service1Status').className = 'status-badge status-dead';
             }
 
+<<<<<<< HEAD
             try {
                 await fetch(`${SERVICE2_URL}/api/messages/history`);
                 document.getElementById('service2Status').textContent = '🟢 Online';
                 document.getElementById('service2Status').className = 'status-badge status-alive';
             } catch {
+=======
+            // Service 2
+            const controller2 = new AbortController();
+            const timeout2 = setTimeout(() => controller2.abort(), 2000);
+            try {
+                const res = await fetch(`${SERVICE2_URL}/api/messages/stats`, { 
+                    method: 'GET', 
+                    signal: controller2.signal 
+                });
+                clearTimeout(timeout2);
+                if (res.ok) {
+                    document.getElementById('service2Status').textContent = '🟢 Online';
+                    document.getElementById('service2Status').className = 'status-badge status-alive';
+                } else {
+                    throw new Error('Service non disponible');
+                }
+            } catch {
+                clearTimeout(timeout2);
+>>>>>>> pre-merge
                 document.getElementById('service2Status').textContent = '🔴 Offline';
                 document.getElementById('service2Status').className = 'status-badge status-dead';
             }
@@ -554,10 +1025,21 @@
             }
         }
 
+<<<<<<< HEAD
+=======
+        function clearLogs() {
+            if (confirm('Voulez-vous vraiment effacer les logs ?')) {
+                document.getElementById('service1Logs').innerHTML = '<div class="log-entry info">Logs effacés</div>';
+                document.getElementById('service2Logs').innerHTML = '<div class="log-entry info">Logs effacés</div>';
+            }
+        }
+
+>>>>>>> pre-merge
         // Auto-refresh
         setInterval(() => {
             refreshStats();
             checkServicesStatus();
+<<<<<<< HEAD
         }, 5000);
 
         // Chargement initial
@@ -566,6 +1048,26 @@
         checkServicesStatus();
         viewInbox('service1');
         viewInbox('service2');
+=======
+            refreshLogs();
+            refreshCommFlow();
+        }, 5000);
+
+        // Chargement initial
+        setTimeout(() => {
+            refreshHistory();
+            refreshStats();
+            checkServicesStatus();
+            refreshLogs();
+            refreshCommFlow();
+            if (document.getElementById('inboxAgent1').value) {
+                viewInbox('service1');
+            }
+            if (document.getElementById('inboxAgent2').value) {
+                viewInbox('service2');
+            }
+        }, 500);
+>>>>>>> pre-merge
     </script>
 </body>
 </html>

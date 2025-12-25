@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -85,8 +86,27 @@ public class MessageService {
             System.out.println("[REMOTE] Envoi vers " + receiverAddress.serviceName() + " (" + remoteUrl + ")");
             
             if (msg instanceof AskMessage ask) {
+<<<<<<< HEAD
                 remoteMessageClient.sendAsk(ask, remoteUrl);
             } else {
+=======
+                // CORRECTION: Lier le CompletableFuture retourné au futureResponse de l'AskMessage
+                CompletableFuture<String> remoteFuture = remoteMessageClient.sendAsk(ask, remoteUrl);
+                remoteFuture.whenComplete((response, error) -> {
+                    if (error != null) {
+                        System.err.println("[REMOTE ASK ERROR] Erreur lors de l'envoi ASK vers " + remoteUrl + ": " + error.getMessage());
+                        ask.getFutureResponse().completeExceptionally(error);
+                        // Mettre dans dead letters en cas d'erreur
+                        deadLetters.push(ask);
+                    } else {
+                        System.out.println("[REMOTE ASK SUCCESS] Réponse reçue: " + response);
+                        ask.complete(response);
+                    }
+                });
+            } else {
+                // Pour TELL, l'envoi est asynchrone, la gestion d'erreur se fait dans RemoteMessageClient
+                // Si une erreur critique survient, elle sera loggée dans RemoteMessageClient
+>>>>>>> pre-merge
                 remoteMessageClient.sendTell(msg, remoteUrl);
             }
             return;
@@ -116,9 +136,16 @@ public class MessageService {
         Mailbox target = mailboxes.computeIfAbsent(localReceiverId, id -> new Mailbox());
 
         // Si c'est un ASK, bloquer immédiatement le destinataire
+<<<<<<< HEAD
         if (msg instanceof AskMessage ask) {
             pendingReceivedAsks.put(ask.getReceiverId(), ask);
             System.out.println("[ASK SYNC] " + ask.getReceiverId() + 
+=======
+        // CORRECTION: Utiliser localReceiverId au lieu de ask.getReceiverId() pour éviter les incohérences
+        if (msg instanceof AskMessage ask) {
+            pendingReceivedAsks.put(localReceiverId, ask);
+            System.out.println("[ASK SYNC] " + localReceiverId + 
+>>>>>>> pre-merge
                     " est maintenant bloqué pour répondre à l'ASK");
             System.out.println("[DEBUG] pendingReceivedAsks contient maintenant: " + pendingReceivedAsks.keySet());
         } else {

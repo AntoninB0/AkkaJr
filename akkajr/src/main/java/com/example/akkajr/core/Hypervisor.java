@@ -1,252 +1,195 @@
 package com.example.akkajr.core;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Hyperviseur qui supervise et récupère automatiquement les services
+ * Hypervisor - Gestionnaire central des services
+ * Surveille l'état des services et gère leur cycle de vie
  */
 public class Hypervisor {
-    
-    private static final Logger LOGGER = Logger.getLogger(Hypervisor.class.getName());
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(Hypervisor.class);
+
     private final Map<String, Service> services;
-    private final ScheduledExecutorService healthCheckScheduler;
-    private final ExecutorService recoveryExecutor;
-    private final int healthCheckIntervalSeconds;
+    private final ScheduledExecutorService scheduler;
+    private final long healthCheckInterval;
+    private final long heartbeatTimeout;
     private volatile boolean running;
-    
-    public Hypervisor() {
-        this(10);  // Vérification toutes les 10 secondes par défaut
-    }
-    
-    public Hypervisor(int healthCheckIntervalSeconds) {
+
+    public Hypervisor(long healthCheckInterval) {
         this.services = new ConcurrentHashMap<>();
-        this.healthCheckScheduler = Executors.newScheduledThreadPool(1);
-        this.recoveryExecutor = Executors.newCachedThreadPool();
-        this.healthCheckIntervalSeconds = healthCheckIntervalSeconds;
+        this.scheduler = Executors.newScheduledThreadPool(2);
+        this.healthCheckInterval = healthCheckInterval;
+        this.heartbeatTimeout = healthCheckInterval * 3;
         this.running = false;
+        logger.info("Hypervisor créé avec intervalle de {}ms", healthCheckInterval);
     }
-    
-    /**
-     * Enregistre un service à superviser
-     */
+
+    public void start() {
+        if (running) {
+            logger.warn("Hypervisor déjà démarré");
+            return;
+        }
+
+        running = true;
+        logger.info("Démarrage de l'Hypervisor...");
+
+        scheduler.scheduleAtFixedRate(this::checkHeartbeats, healthCheckInterval, healthCheckInterval, TimeUnit.MILLISECONDS);
+
+        logger.info("Hypervisor démarré avec succès");
+    }
+
+    public void stop() {
+        if (!running) {
+            logger.warn("Hypervisor déjà arrêté");
+            return;
+        }
+
+        running = false;
+        logger.info("Arrêt de l'Hypervisor...");
+
+        services.values().forEach(service -> {
+            try {
+                service.stop();
+            } catch (Exception e) {
+                logger.error("Erreur lors de l'arrêt du service {}", service.getId(), e);
+            }
+        });
+
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        services.clear();
+        logger.info("Hypervisor arrêté");
+    }
+
     public void registerService(Service service) {
-        services.put(service.getId(), service);
-        LOGGER.info("Service enregistré : " + service.getName() + " [" + service.getId() + "]");
+        if (service == null) {
+            throw new IllegalArgumentException("Service ne peut pas être null");
+        }
+        String serviceId = service.getId();
+        if (services.containsKey(serviceId)) {
+            logger.warn("Service {} déjà enregistré, remplacement", serviceId);
+        }
+        services.put(serviceId, service);
+        logger.info("Service {} enregistré (total: {})", serviceId, services.size());
     }
-    
-    /**
-     * Retire un service de la supervision
-     */
+
     public void unregisterService(String serviceId) {
         Service removed = services.remove(serviceId);
         if (removed != null) {
-            LOGGER.info("Service désenregistré : " + removed.getName());
+            logger.info("Service {} désenregistré", serviceId);
+            try {
+                removed.stop();
+            } catch (Exception e) {
+                logger.error("Erreur lors de l'arrêt du service {}", serviceId, e);
+            }
+        } else {
+            logger.warn("Service {} non trouvé pour désenregistrement", serviceId);
         }
     }
-    
-    /**
-     * Démarre l'hyperviseur
-     */
-    public void start() {
-        if (running) {
-            LOGGER.warning("L'hyperviseur est déjà en cours d'exécution");
+
+    public Service getService(String serviceId) {
+        return services.get(serviceId);
+    }
+
+    public Map<String, Service> getAllServices() {
+        return Collections.unmodifiableMap(services);
+    }
+
+    public Map<String, Map<String, Object>> getServicesStatus() {
+        Map<String, Map<String, Object>> statusMap = new HashMap<>();
+        for (Map.Entry<String, Service> entry : services.entrySet()) {
+            Service service = entry.getValue();
+            Map<String, Object> status = new HashMap<>();
+            status.put("id", entry.getKey());
+            status.put("name", service.getName());
+            status.put("state", service.getState());
+            status.put("alive", service.isAlive());
+            status.put("lastHeartbeat", service.getLastHeartbeat());
+            status.put("uptime", service.getUptime());
+            statusMap.put(entry.getKey(), status);
+        }
+        return statusMap;
+    }
+
+    private void checkHeartbeats() {
+        if (!running) {
             return;
         }
-        
-        running = true;
-        LOGGER.info("🚀 Démarrage de l'hyperviseur");
-        LOGGER.info("Intervalle de vérification : " + healthCheckIntervalSeconds + "s");
-        
-        // Planifie les health checks
-        healthCheckScheduler.scheduleAtFixedRate(
-            this::performHealthChecks,
-            0,
-            healthCheckIntervalSeconds,
-            TimeUnit.SECONDS
-        );
-    }
-    
-    /**
-     * Arrête l'hyperviseur
-     */
-    public void stop() {
-        running = false;
-        LOGGER.info("Arrêt de l'hyperviseur");
-        
-        healthCheckScheduler.shutdown();
-        recoveryExecutor.shutdown();
-        
-        try {
-            healthCheckScheduler.awaitTermination(10, TimeUnit.SECONDS);
-            recoveryExecutor.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            LOGGER.warning("Timeout lors de l'arrêt");
-            healthCheckScheduler.shutdownNow();
-            recoveryExecutor.shutdownNow();
-        }
-    }
-    
-    /**
-     * Effectue les vérifications de santé sur tous les services
-     */
-    private void performHealthChecks() {
-        LOGGER.fine("Health check en cours...");
-        
+        long now = System.currentTimeMillis();
         for (Service service : services.values()) {
             try {
-                checkServiceHealth(service);
+                long since = now - service.getLastHeartbeat();
+                if (since > heartbeatTimeout) {
+                    logger.warn("Service {} n'a pas répondu depuis {}ms (timeout: {}ms)",
+                            service.getId(), since, heartbeatTimeout);
+                    service.markAsUnhealthy();
+                    if (service.isAutoRestart()) {
+                        logger.info("Tentative de redémarrage du service {}", service.getId());
+                        restartService(service);
+                    }
+                } else if (!service.isAlive()) {
+                    logger.info("Service {} est de nouveau vivant", service.getId());
+                    service.markAsHealthy();
+                }
             } catch (Exception e) {
-                LOGGER.severe("Erreur lors du health check de " + service.getName() + 
-                            ": " + e.getMessage());
+                logger.error("Erreur lors de la vérification du service {}", service.getId(), e);
             }
         }
     }
-    
-    /**
-     * Vérifie la santé d'un service spécifique
-     */
-    private void checkServiceHealth(Service service) {
-        String serviceName = service.getName();
-        String serviceId = service.getId();
-        
-        // Vérifie si le service est vivant
-        if (!service.isAlive()) {
-            LOGGER.warning("💀 Service MORT détecté : " + serviceName + " [" + serviceId + "]");
-            LOGGER.warning("Dernier heartbeat : " + service.getLastHeartbeat());
-            
-            // Lance la récupération
-            recoveryExecutor.submit(() -> recoverService(service));
-        } else {
-            LOGGER.fine("Service OK : " + serviceName);
-        }
-    }
-    
-    /**
-     * Récupère un service mort
-     */
-    private void recoverService(Service deadService) {
-        String serviceName = deadService.getName();
-        String oldId = deadService.getId();
-        
-        LOGGER.warning("RÉCUPÉRATION EN COURS pour : " + serviceName);
-        
+
+    private void restartService(Service service) {
         try {
-            // 1. Sauvegarde le snapshot
-            ServiceSnapshot snapshot = deadService.getLastSnapshot();
-            if (snapshot == null) {
-                snapshot = deadService.createSnapshot();
-            }
-            
-            LOGGER.info("Snapshot récupéré : " + snapshot.pendingCommands.size() + " commandes");
-            
-            // 2. Arrête le service mort (si possible)
-            try {
-                deadService.stop();
-            } catch (Exception e) {
-                LOGGER.warning("Impossible d'arrêter proprement le service mort");
-            }
-            
-            // 3. Crée une nouvelle instance
-            Service newService = createNewServiceInstance(deadService, snapshot);
-            
-            if (newService == null) {
-                LOGGER.severe("Impossible de créer une nouvelle instance");
-                return;
-            }
-            
-            // 4. Restaure l'état
-            newService.restoreFromSnapshot(snapshot);
-            
-            // 5. Démarre le nouveau service
-            newService.start();
-            
-            // 6. Remplace dans le registre
-            services.remove(oldId);
-            services.put(newService.getId(), newService);
-            
-            LOGGER.info("   RÉCUPÉRATION RÉUSSIE : " + serviceName);
-            LOGGER.info("   Ancien ID : " + oldId);
-            LOGGER.info("   Nouvel ID : " + newService.getId());
-            LOGGER.info("   Commandes restaurées : " + snapshot.pendingCommands.size());
-            
-            // 7. Ré-exécute les commandes en attente
-            if (!snapshot.pendingCommands.isEmpty()) {
-                LOGGER.info("🔄 Ré-exécution des commandes en attente...");
-                newService.execute();
-            }
-            
+            logger.info("Redémarrage du service {}...", service.getId());
+            service.stop();
+            Thread.sleep(1000);
+            service.start();
+            logger.info("Service {} redémarré avec succès", service.getId());
         } catch (Exception e) {
-            LOGGER.severe("❌ ÉCHEC DE RÉCUPÉRATION pour " + serviceName + ": " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Échec du redémarrage du service {}", service.getId(), e);
         }
     }
-    
-    /**
-     * Crée une nouvelle instance du même type de service
-     */
-    private Service createNewServiceInstance(Service oldService, ServiceSnapshot snapshot) {
-        try {
-            // Utilise la réflexion pour créer une nouvelle instance
-            Class<?> serviceClass = oldService.getClass();
-            
-            // Essaie le constructeur avec String (nom)
-            try {
-                return (Service) serviceClass
-                    .getConstructor(String.class)
-                    .newInstance(snapshot.serviceName);
-            } catch (NoSuchMethodException e) {
-                // Essaie le constructeur sans paramètres
-                return (Service) serviceClass
-                    .getConstructor()
-                    .newInstance();
-            }
-            
-        } catch (Exception e) {
-            LOGGER.severe("Impossible de créer une nouvelle instance : " + e.getMessage());
-            return null;
-        }
+
+    public int getServiceCount() {
+        return services.size();
     }
-    
-    /**
-     * Obtient le statut de tous les services
-     */
-    public Map<String, Map<String, Object>> getServicesStatus() {
-        Map<String, Map<String, Object>> status = new HashMap<>();
-        
-        for (Service service : services.values()) {
-            Map<String, Object> serviceStatus = new HashMap<>();
-            serviceStatus.put("name", service.getName());
-            serviceStatus.put("state", service.getState());
-            serviceStatus.put("alive", service.isAlive());
-            serviceStatus.put("lastHeartbeat", service.getLastHeartbeat());
-            serviceStatus.put("pendingCommands", service.getInputsCommands().size());
-            
-            status.put(service.getId(), serviceStatus);
-        }
-        
-        return status;
+
+    public int getAliveServiceCount() {
+        return (int) services.values().stream().filter(Service::isAlive).count();
     }
-    
-    /**
-     * Affiche le statut de tous les services
-     */
-    public void printStatus() {
-        System.out.println("\n========== HYPERVISOR STATUS ==========");
-        System.out.println("Services supervisés : " + services.size());
-        System.out.println();
-        
-        for (Service service : services.values()) {
-            String status = service.isAlive() ? "ALIVE" : "DEAD";
-            System.out.printf("%-30s | %s | %s | Heartbeat: %s\n",
-                            service.getName(),
-                            service.getState(),
-                            status,
-                            service.getLastHeartbeat());
-        }
-        
-        System.out.println("=======================================\n");
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public long getHealthCheckInterval() {
+        return healthCheckInterval;
+    }
+
+    public long getHeartbeatTimeout() {
+        return heartbeatTimeout;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Hypervisor{services=%d, alive=%d, running=%s}",
+                getServiceCount(), getAliveServiceCount(), running);
     }
 }
