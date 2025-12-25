@@ -22,6 +22,7 @@ import java.util.List;
 public class MetricsController {
 
     @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("coreActorSystem")
     private ActorSystem actorSystem;
 
     @Autowired

@@ -29,6 +29,7 @@ import jakarta.annotation.PostConstruct;
 public class ActorController {
     
     @Autowired
+    @org.springframework.beans.factory.annotation.Qualifier("coreActorSystem")
     private ActorSystem actorSystem;
     
     private ActorRef supervisorRef;

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/messages")
@@ -44,10 +45,22 @@ public class MessageController {
     }
 
     @PostMapping("/ask")
-    public String sendAsk(@RequestBody AskMessage ask) {
+    public ResponseEntity<String> sendAsk(@RequestBody AskMessage ask) {
         cleanReceiverId(ask);
         messageService.send(ask);
-        return "ASK envoyé, attente de réponse";
+        
+        // CORRECTION: Attendre la réponse de l'acteur via le CompletableFuture
+        // avec un timeout de 30 secondes
+        try {
+            String response = ask.getFutureResponse().get(30, TimeUnit.SECONDS);
+            return ResponseEntity.ok(response);
+        } catch (java.util.concurrent.TimeoutException e) {
+            System.err.println("[ASK TIMEOUT] Timeout en attendant la réponse pour " + ask.getReceiverId());
+            return ResponseEntity.status(504).body("Timeout: Aucune réponse reçue dans les 30 secondes");
+        } catch (Exception e) {
+            System.err.println("[ASK ERROR] Erreur en attendant la réponse: " + e.getMessage());
+            return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
+        }
     }
 
     @GetMapping("/inbox/{id}")
