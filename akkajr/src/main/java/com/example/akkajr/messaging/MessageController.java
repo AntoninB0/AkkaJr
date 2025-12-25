@@ -3,7 +3,8 @@ package com.example.akkajr.messaging;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -108,4 +109,55 @@ public class MessageController {
         
         return ResponseEntity.ok(stats);
     }
-}
+
+
+    @GetMapping("/logs")
+    public ResponseEntity<Map<String, Object>> getLogs() {
+        Queue<Message> history = messageService.history();
+        Queue<Message> deadLetters = messageService.getDeadLetters();
+        
+        List<Map<String, Object>> logEntries = new ArrayList<>();
+        
+        // Convert recent messages to log entries (last 50)
+        history.stream()
+            .limit(50)
+            .forEach(msg -> {
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("timestamp", msg.getTimestamp());
+                entry.put("type", msg instanceof AskMessage ? "ASK" : "TELL");
+                entry.put("sender", msg.getSenderId());
+                entry.put("receiver", msg.getReceiverId());
+                entry.put("content", msg.getContent());
+                entry.put("origin", msg.getOriginService());
+                entry.put("isRemote", msg.getOriginService() != null && !msg.getOriginService().isEmpty());
+                logEntries.add(entry);
+            });
+        
+        // Add dead letters as error logs
+        deadLetters.stream()
+            .limit(20)
+            .forEach(msg -> {
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("timestamp", msg.getTimestamp());
+                entry.put("type", "DEAD_LETTER");
+                entry.put("sender", msg.getSenderId());
+                entry.put("receiver", msg.getReceiverId());
+                entry.put("content", msg.getContent());
+                entry.put("origin", msg.getOriginService());
+                entry.put("isRemote", false);
+                logEntries.add(entry);
+            });
+        
+        // Sort by timestamp (newest first)
+        logEntries.sort((a, b) -> Long.compare(
+            (Long) b.getOrDefault("timestamp", 0L),
+            (Long) a.getOrDefault("timestamp", 0L)
+        ));
+        
+        Map<String, Object> logs = new HashMap<>();
+        logs.put("entries", logEntries);
+        logs.put("serviceName", currentServiceName);
+        logs.put("totalLogs", logEntries.size());
+        
+        return ResponseEntity.ok(logs);
+    }}
