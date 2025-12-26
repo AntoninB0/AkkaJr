@@ -1,15 +1,13 @@
 package com.example.akkajr.router;
 
-import com.example.akkajr.messaging.Message;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
+
+import com.example.akkajr.messaging.Message;
 
 /**
  * Implémente la stratégie Broadcast : envoie une copie du message
  * à TOUS les workers configurés.
  */
-@Component("broadcastRouter")
 public class BroadcastRouter extends AbstractRouter{
 	
 	public BroadcastRouter(List<String> routeIds) {
@@ -17,6 +15,12 @@ public class BroadcastRouter extends AbstractRouter{
 	}
 	
 	
+    @Override
+    protected String selectRoute() {
+        // Pas de logique de sélection spécifique pour le Broadcast
+        return null;
+    }
+
 	@Override
 	public void route(Message message) {
         if (routeIds == null || routeIds.isEmpty()) return;

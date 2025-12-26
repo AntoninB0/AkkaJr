@@ -15,8 +15,6 @@
     <description>Akka-inspired actor framework</description>
     <properties>
         <java.version>21</java.version>
-        <akka.version>2.6.20</akka.version>
-        <scala.binary.version>2.13</scala.binary.version>
     </properties>
     <dependencies>
         <dependency>
@@ -36,26 +34,6 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 		<dependency>
-			<groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-actor_${scala.binary.version}</artifactId>
-			<version>${akka.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-actor-typed_${scala.binary.version}</artifactId>
-			<version>${akka.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-cluster-sharding-typed_${scala.binary.version}</artifactId>
-			<version>${akka.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-serialization-jackson_${scala.binary.version}</artifactId>
-			<version>${akka.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
@@ -63,12 +41,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-actor-testkit-typed_${scala.binary.version}</artifactId>
-			<version>${akka.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

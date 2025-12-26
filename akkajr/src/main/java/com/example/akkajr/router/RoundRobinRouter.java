@@ -1,7 +1,5 @@
 package com.example.akkajr.router;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 
 
@@ -9,7 +7,7 @@ import java.util.List;
  * Implémente la stratégie Round Robin : distribue les messages un par un
  * à chaque worker de la liste de manière circulaire.
  */
-@Component("roundRobinRouter")
+
 public class RoundRobinRouter extends AbstractRouter{
 	
 	private int index = 0;
