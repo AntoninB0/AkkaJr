@@ -4,7 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.PreDestroy;
+// Changement d'import : javax -> jakarta
+import jakarta.annotation.PreDestroy;
 
 /**
  * Configuration Spring pour l'Hypervisor

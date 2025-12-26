@@ -5,8 +5,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class IndexController {
+
     @GetMapping("/")
     public String index() {
-        return "index"; // Spring cherchera templates/index.html
+        // Renvoie vers src/main/resources/templates/index.html
+        return "index"; 
     }
 }

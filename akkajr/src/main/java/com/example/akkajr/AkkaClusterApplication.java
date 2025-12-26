@@ -7,7 +7,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import javax.annotation.PreDestroy;
+// Changement d'import : javax -> jakarta
+import jakarta.annotation.PreDestroy;
 
 @SpringBootApplication
 public class AkkaClusterApplication {
@@ -20,9 +21,10 @@ public class AkkaClusterApplication {
     
     @Bean
     public ActorSystem<Void> actorSystem() {
+        // Le nom "ClusterSystem" doit correspondre à celui dans votre application.conf
         actorSystem = ActorSystem.create(
             Behaviors.empty(), 
-            "ClusterSystem"
+            "AkkajrApplication" 
         );
         
         // Initialiser le sharding
