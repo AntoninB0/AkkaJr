@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// Changement d'import : javax -> jakarta
+
 import jakarta.annotation.PreDestroy;
 
 /**

@@ -1,12 +1,13 @@
 package com.example.akkajr;
 
-import akka.actor.typed.ActorSystem;
-import akka.actor.typed.javadsl.Behaviors;
-import com.example.akkajr.sharding.ServiceSharding;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import com.example.akkajr.sharding.ServiceSharding;
+
+import akka.actor.typed.ActorSystem;
+import akka.actor.typed.javadsl.Behaviors;
 // Changement d'import : javax -> jakarta
 import jakarta.annotation.PreDestroy;
 

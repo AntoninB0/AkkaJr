@@ -1,7 +1,8 @@
 package com.example.akkajr.core;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Snapshot de l'état d'un service pour récupération
