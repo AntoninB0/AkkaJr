@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  flight-tracker:
+    build:
+      context: ./akkajr
+      dockerfile: Dockerfile
+    container_name: flight-tracker-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - APP_SERVICE_NAME=service1
+      - APP_REMOTE_SERVICES=service2=http://flight-monitor:8081
+      - SERVER_PORT=8080
+    networks:
+      - flightradar-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  flight-monitor:
+    build:
+      context: ./akkajr
+      dockerfile: Dockerfile
+    container_name: flight-monitor-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=service2
+      - APP_SERVICE_NAME=service2
+      - APP_REMOTE_SERVICES=service1=http://flight-tracker:8080
+      - SERVER_PORT=8081
+    networks:
+      - flightradar-network
+    depends_on:
+      - flight-tracker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  flightradar-network:
+    driver: bridge

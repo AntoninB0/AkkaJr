@@ -59,16 +59,28 @@ public class MessageService {
         System.out.println("[MessageService] RemoteMessageClient disponible: " + (remoteMessageClient != null));
     }
 
-    // Envoi d'un message (TELL ou ASK)
+    
+  // Envoi d'un message (TELL ou ASK)
     public void send(Message msg) {
         String receiverId = msg.getReceiverId();
         
         // Parser l'adresse pour détecter si c'est local ou remote
         AgentAddress receiverAddress = AgentAddress.parse(receiverId);
         
+        // FIX: Si le service name correspond au service actuel, traiter comme local
+        // Cela permet d'utiliser "service1:agent" ou "agent" pour les acteurs locaux
+        if (receiverAddress.isRemote() && receiverAddress.serviceName().equals(currentServiceName)) {
+            // C'est un acteur local avec un préfixe de service - créer une nouvelle adresse locale
+            receiverAddress = new AgentAddress(null, receiverAddress.agentId());
+            System.out.println("[DEBUG] Service name '" + receiverAddress.agentId() + 
+                            "' matches current service '" + currentServiceName + 
+                            "', treating as local");
+        }
+        
         // DEBUG: Vérifier la détection remote
         System.out.println("[DEBUG REMOTE] receiverId=" + receiverId);
         System.out.println("[DEBUG REMOTE] receiverAddress.isRemote()=" + receiverAddress.isRemote());
+        System.out.println("[DEBUG REMOTE] currentServiceName=" + currentServiceName);
         System.out.println("[DEBUG REMOTE] remoteMessageClient != null=" + (remoteMessageClient != null));
         System.out.println("[DEBUG REMOTE] remoteServiceUrls=" + remoteServiceUrls);
         
@@ -112,7 +124,7 @@ public class MessageService {
 
         // DEBUG: Log pour voir ce qui arrive
         System.out.println("[DEBUG] Message reçu: " + msg.getClass().getSimpleName() + 
-                          " de " + msg.getSenderId() + " vers " + localReceiverId);
+                        " de " + msg.getSenderId() + " vers " + localReceiverId);
         System.out.println("[DEBUG] " + localReceiverId + " bloqué? " + pendingReceivedAsks.containsKey(localReceiverId));
 
         // CORRECTION: Bloquer le RECEIVER s'il a un ASK non répondu
@@ -148,6 +160,7 @@ public class MessageService {
         dispatcher.dispatch(msg, target);
     }
 
+    
     // Inbox consultable sans vider la mailbox
     public Queue<Message> inbox(String agentId) {
         // Parser pour gérer les adresses remote

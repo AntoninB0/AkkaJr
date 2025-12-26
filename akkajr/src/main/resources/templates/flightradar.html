@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Radar Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h2 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #2a5298;
+            padding-bottom: 10px;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .service-panel {
+            background: #f8f9fa;
+            border-left: 5px solid #2a5298;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .service-panel.service1 {
+            border-left-color: #3498db;
+        }
+
+        .service-panel.service2 {
+            border-left-color: #e74c3c;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #1e3c72;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #3498db;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: #27ae60;
+            box-shadow: 0 0 5px #27ae60;
+        }
+
+        .status-offline {
+            background: #e74c3c;
+            box-shadow: 0 0 5px #e74c3c;
+        }
+
+        .flight-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .flight-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .flight-item h4 {
+            color: #2a5298;
+            margin-bottom: 8px;
+        }
+
+        .flight-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .flight-detail {
+            background: white;
+            padding: 8px;
+            border-radius: 3px;
+        }
+
+        .flight-detail strong {
+            color: #1e3c72;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .log-entry.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .log-entry.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ Flight Radar Dashboard</h1>
+
+        <!-- Service Status -->
+        <div class="panel">
+            <h2>Service Status</h2>
+            <div class="services-grid">
+                <div class="service-panel service1">
+                    <h3>
+                        <span class="status-indicator" id="status-service1"></span>
+                        Service 1 (Flight Tracker)
+                    </h3>
+                    <p>Port: 8080</p>
+                    <p>Status: <span id="status-text-1">Checking...</span></p>
+                </div>
+                <div class="service-panel service2">
+                    <h3>
+                        <span class="status-indicator" id="status-service2"></span>
+                        Service 2 (Flight Monitor)
+                    </h3>
+                    <p>Port: 8081</p>
+                    <p>Status: <span id="status-text-2">Checking...</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Track Flight -->
+        <div class="panel">
+            <h2>Track Flight</h2>
+            <div class="form-group">
+                <label for="flightId">Flight ID:</label>
+                <input type="text" id="flightId" placeholder="e.g., AF123, BA456, LH789" value="AF123">
+            </div>
+            <button class="btn-primary" onclick="trackFlight()">Track Flight</button>
+            <button class="btn-success" onclick="getFlightStatus()">Get Status</button>
+            <button class="btn-danger" onclick="clearLogs()">Clear Logs</button>
+        </div>
+
+        <!-- Statistics -->
+        <div class="panel">
+            <h2>Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="stat-tracked">0</h3>
+                    <p>Tracked Flights</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-messages">0</h3>
+                    <p>Total Messages</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-remote">0</h3>
+                    <p>Remote Messages</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tracked Flights -->
+        <div class="panel">
+            <h2>Tracked Flights</h2>
+            <button onclick="refreshTrackedFlights()">Refresh</button>
+            <div id="trackedFlights" class="flight-list">
+                <div class="loading">No flights tracked yet. Track a flight to see it here.</div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="panel">
+            <h2>Activity Log</h2>
+            <button onclick="refreshLogs()">Refresh Logs</button>
+            <div id="activityLog" style="max-height: 300px; overflow-y: auto; margin-top: 15px;">
+                <div class="loading">No activity yet...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SERVICE1_URL = 'http://localhost:8080';
+        const SERVICE2_URL = 'http://localhost:8081';
+
+        // Check service status on load
+        window.onload = function() {
+            checkServiceStatus();
+            refreshTrackedFlights();
+            refreshStats();
+            setInterval(checkServiceStatus, 10000); // Check every 10 seconds
+            setInterval(refreshTrackedFlights, 5000); // Refresh flights every 5 seconds
+            setInterval(refreshStats, 5000); // Refresh stats every 5 seconds
+        };
+
+        function checkServiceStatus() {
+            // Check Service 1
+            fetch(`${SERVICE1_URL}/actuator/health`)
+                .then(r => {
+                    document.getElementById('status-service1').className = 'status-indicator status-online';
+                    document.getElementById('status-text-1').textContent = 'Online';
+                })
+                .catch(() => {
+                    document.getElementById('status-service1').className = 'status-indicator status-offline';
+                    document.getElementById('status-text-1').textContent = 'Offline';
+                });
+
+            // Check Service 2
+            fetch(`${SERVICE2_URL}/actuator/health`)
+                .then(r => {
+                    document.getElementById('status-service2').className = 'status-indicator status-online';
+                    document.getElementById('status-text-2').textContent = 'Online';
+                })
+                .catch(() => {
+                    document.getElementById('status-service2').className = 'status-indicator status-offline';
+                    document.getElementById('status-text-2').textContent = 'Offline';
+                });
+        }
+
+        function trackFlight() {
+            const flightId = document.getElementById('flightId').value.trim();
+            if (!flightId) {
+                addLog('error', 'Please enter a flight ID');
+                return;
+            }
+
+            addLog('info', `Tracking flight: ${flightId}...`);
+
+            fetch(`${SERVICE1_URL}/api/flights/track`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ flightId: flightId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                addLog('success', `Flight ${flightId} tracking initiated: ${data.message || 'Success'}`);
+                setTimeout(refreshTrackedFlights, 2000);
+            })
+            .catch(e => {
+                addLog('error', `Error tracking flight: ${e.message}`);
+            });
+        }
+
+        function getFlightStatus() {
+            const flightId = document.getElementById('flightId').value.trim();
+            if (!flightId) {
+                addLog('error', 'Please enter a flight ID');
+                return;
+            }
+
+            addLog('info', `Getting status for flight: ${flightId}...`);
+
+            fetch(`${SERVICE1_URL}/api/flights/status/${flightId}`)
+                .then(r => r.json())
+                .then(data => {
+                    addLog('success', `Flight ${flightId} status: ${JSON.stringify(data, null, 2)}`);
+                })
+                .catch(e => {
+                    addLog('error', `Error getting flight status: ${e.message}`);
+                });
+        }
+
+        function refreshTrackedFlights() {
+            fetch(`${SERVICE2_URL}/api/flights/tracked`)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('trackedFlights');
+                    if (!data || !data.flights || Object.keys(data.flights).length === 0) {
+                        container.innerHTML = '<div class="loading">No flights tracked yet.</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    for (const [flightId, flightData] of Object.entries(data.flights)) {
+                        if (typeof flightData === 'string') {
+                            try {
+                                const parsed = JSON.parse(flightData);
+                                html += renderFlightItem(flightId, parsed);
+                            } catch {
+                                html += renderFlightItem(flightId, {});
+                            }
+                        } else {
+                            html += renderFlightItem(flightId, flightData);
+                        }
+                    }
+                    container.innerHTML = html;
+                    document.getElementById('stat-tracked').textContent = Object.keys(data.flights).length;
+                })
+                .catch(e => {
+                    document.getElementById('trackedFlights').innerHTML = 
+                        `<div class="log-entry error">Error loading flights: ${e.message}</div>`;
+                });
+        }
+
+        function renderFlightItem(flightId, data) {
+            return `
+                <div class="flight-item">
+                    <h4>✈️ ${flightId}</h4>
+                    <div class="flight-details">
+                        <div class="flight-detail"><strong>Airline:</strong> ${data.airline || 'N/A'}</div>
+                        <div class="flight-detail"><strong>Aircraft:</strong> ${data.aircraft || 'N/A'}</div>
+                        <div class="flight-detail"><strong>Position:</strong> ${data.latitude?.toFixed(4) || 'N/A'}, ${data.longitude?.toFixed(4) || 'N/A'}</div>
+                        <div class="flight-detail"><strong>Altitude:</strong> ${data.altitude?.toFixed(0) || 'N/A'} ft</div>
+                        <div class="flight-detail"><strong>Speed:</strong> ${data.speed?.toFixed(0) || 'N/A'} km/h</div>
+                        <div class="flight-detail"><strong>Route:</strong> ${data.origin || 'N/A'} → ${data.destination || 'N/A'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function refreshStats() {
+            // Service 1 stats
+            fetch(`${SERVICE1_URL}/api/messages/stats`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('stat-messages').textContent = data.totalMessages || 0;
+                    document.getElementById('stat-remote').textContent = data.remoteMessages || 0;
+                })
+                .catch(() => {});
+
+            // Service 2 stats
+            fetch(`${SERVICE2_URL}/api/messages/stats`)
+                .then(r => r.json())
+                .then(data => {
+                    // Update if needed
+                })
+                .catch(() => {});
+        }
+
+        function refreshLogs() {
+            fetch(`${SERVICE1_URL}/api/messages/logs`)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('activityLog');
+                    if (!data.entries || data.entries.length === 0) {
+                        container.innerHTML = '<div class="loading">No activity yet...</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.entries.slice(0, 20).forEach(entry => {
+                        const type = entry.type === 'DEAD_LETTER' ? 'error' : 
+                                    entry.type === 'ASK' ? 'info' : 'success';
+                        html += `<div class="log-entry ${type}">
+                            [${new Date(entry.timestamp).toLocaleTimeString()}] 
+                            ${entry.type} ${entry.sender} → ${entry.receiver}
+                            ${entry.isRemote ? '(REMOTE)' : ''}
+                            ${entry.content ? ': ' + entry.content.substring(0, 50) : ''}
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                })
+                .catch(e => {
+                    document.getElementById('activityLog').innerHTML = 
+                        `<div class="log-entry error">Error loading logs: ${e.message}</div>`;
+                });
+        }
+
+        function addLog(type, message) {
+            const container = document.getElementById('activityLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep only last 50 entries
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('activityLog').innerHTML = '<div class="loading">Logs cleared...</div>';
+        }
+    </script>
+</body>
+</html>

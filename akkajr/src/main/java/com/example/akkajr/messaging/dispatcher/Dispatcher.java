@@ -25,15 +25,19 @@ public class Dispatcher {
             deadLetters.push(msg);
             return;
         }
-
-        // TELL : traitement asynchrone
-        if (!(msg instanceof AskMessage)) {
-            executor.submit(() -> {
-                System.out.println("[TELL] " + msg.getContent());
-            });
-        } else {
-            // ASK : déjà bloqué côté MessageService.send()
+    
+        // For ASK messages, we need to deliver them so the actor can reply
+        // The MessageService has already blocked the receiver
+        if (msg instanceof AskMessage) {
             System.out.println("[ASK DELIVERED] " + msg.getReceiverId() + " a reçu l'ASK : " + msg.getContent());
+            // The message is already in the mailbox, it will be processed
+            // But we need to ensure actors can access it
+            return;
         }
+        
+        // TELL : traitement asynchrone
+        executor.submit(() -> {
+            System.out.println("[TELL] " + msg.getContent());
+        });
     }
 }
