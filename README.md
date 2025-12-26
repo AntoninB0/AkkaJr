@@ -17,6 +17,14 @@ docker run -p 8080:8080 akkajr
 localhost:8080
 ```
 
+
+# Lancer les tests 
+```sh
+cd ./akkajr/
+ PowerShell -ExecutionPolicy Bypass -File .\test-complet-simple.ps1
+ ```
+
+
 # Vs Code extension
 
 https://marketplace.visualstudio.com/items?itemName=Al-rimi.tomcat
@@ -45,66 +53,6 @@ docker container prune -f
 
 docker run -p 8080:8080 akkajr
 
-
-
-# tests automatisés
-
-Trois acteurs tests ont été créés les commandes suivantes permettent de voir leurs interractions.
-
-```
-Write-Host "`n=== TEST 1: Initialisation ===" -ForegroundColor Cyan
-Invoke-WebRequest -Uri http://localhost:8080/api/actors/init -Method POST
-
-Start-Sleep -Seconds 1
-
-Write-Host "`n=== TEST 2: Liste des acteurs ===" -ForegroundColor Cyan
-Invoke-WebRequest -Uri http://localhost:8080/api/actors/list -Method GET
-
-Start-Sleep -Seconds 1
-
-Write-Host "`n=== TEST 3: Commande simple ===" -ForegroundColor Cyan
-$body1 = '{"items": ["Laptop"]}'
-$result1 = Invoke-WebRequest -Uri http://localhost:8080/api/actors/order -Method POST -ContentType "application/json" -Body $body1
-$result1.Content
-
-Start-Sleep -Seconds 1
-
-Write-Host "`n=== TEST 4: Commande multiple ===" -ForegroundColor Cyan
-$body2 = '{"items": ["Phone", "Tablet", "Watch"]}'
-$result2 = Invoke-WebRequest -Uri http://localhost:8080/api/actors/order -Method POST -ContentType "application/json" -Body $body2
-$result2.Content
-
-Start-Sleep -Seconds 1
-
-Write-Host "`n=== TEST 5: Commande vide (échec attendu) ===" -ForegroundColor Cyan
-$body3 = '{"items": []}'
-$result3 = Invoke-WebRequest -Uri http://localhost:8080/api/actors/order -Method POST -ContentType "application/json" -Body $body3
-$result3.Content
-
-Start-Sleep -Seconds 1
-
-Write-Host "`n=== LOGS (30 dernières lignes) ===" -ForegroundColor Yellow
-docker logs --tail 30 $(docker ps -q)
-```
-
-
-# État actuel du projet
-- Framework d'acteurs maison: création/destruction, blocage ASK, mailbox, dead letters, history, supervision basique (Supervisor, Hypervisor).
-- Messaging intra/inter services: TELL/ASK HTTP, blocage/déblocage ASK, dead letters, historique; liaison CompletableFuture pour ASK remote.
-- Observabilité: endpoints /api/metrics/*, /actuator/health, /actuator/prometheus, flux SSE, pages /observability et /dashboard (démo).
-- Routers: round-robin et broadcast, démo via RouterTest (console).
-- Tests: ActorSystemTests OK; MessageServiceTest OK (profil test/local); test de contexte Spring désactivé (inutile ici).
-- Cluster Akka: optionnel(selon le fichier de la prof), nécessite deux nœuds cohérents (2551/2552) si activé; sinon, privilégier provider local/test.
-
-# À faire / manquants
-- Découverte de services (Eureka) au lieu des URLs statiques.
-- Appli de démo distribuée demandée (flight radar) avec 2 microservices distincts + scripts/tests d’intégration.
-- Logs fichiers (Logback + rotation) avec traceId/msgId.
-- Supervision avancée: stratégies restart/stop/escalate + tests; tolérance pannes distribuée.
-- Scalabilité/élasticité: auto-spawn ou router adaptatif selon backlog/charge.
-- Tests d’intégration (comm intra/inter, supervision, health/metrics, démo).
-- Documentation: README enrichi, slides PDF/LaTeX, collection Postman, scripts de test reproductibles.
-- Si cluster Akka conservé: aligner seeds et lancement 2 nœuds; sinon le désactiver en prod/test.
 
 # Commandes utiles (local)
 ```sh
